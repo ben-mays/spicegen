@@ -128,10 +128,10 @@ func BuildSchema(compiledSchema *compiler.CompiledSchema) Schema {
 			}
 		}
 		if len(allowedPerms) == 1 && allowedPerms[0] != "*" {
-			resource.PermissionSubjectType = allowedPerms[0]
+			resource.PermissionSubjectType = fmt.Sprintf("%s_resource", allowedPerms[0])
 		}
 		if len(allowedRelations) == 1 && allowedRelations[0] != "*" {
-			resource.RelationSubjectType = allowedRelations[0]
+			resource.RelationSubjectType = fmt.Sprintf("%s_resource", allowedRelations[0])
 		}
 		state[resourceName] = resource
 	}

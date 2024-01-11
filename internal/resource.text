@@ -15,16 +15,15 @@ var ALLOWED_PERMISSION_SUBJECT_TYPES = map[{{ $resource }}Permission]map[string]
 	},
 	{{ end }}
 }
-
+{{end}}
+{{ if .Resource.Relations }} 
 var ALLOWED_RELATION_SUBJECT_TYPES = map[{{ $resource }}Relation]map[string]bool{
 	{{ range $key, $rel := .Resource.Relations }}{{ $rel.OutputName | ToCamel }}Relation: {
 	  {{ range $subject := $rel.AllowedSubjectTypes }}"{{ $subject }}": true,{{end}}
 	},
 	{{ end }}
 }
-{{end}}
 
-{{ if .Resource.Relations }} {{/* Only create permissions type/checker if there are permissions */}}
 type {{ $resource }}Relation string
 const (
 	{{ range $key, $rel := .Resource.Relations }}{{ $rel.OutputName | ToCamel }}Relation {{ $resource }}Relation = "{{ $rel.Name }}"
