@@ -1,6 +1,6 @@
 # spicegen
 Generate strongly typed clients from spicedb schemas. See `_examples/` for a sample generated client.
- 
+
 ```
 Usage of spicegen:
   -module-name string
