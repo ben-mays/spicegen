@@ -3,8 +3,8 @@ Generate strongly typed clients from spicedb schemas. See `_examples/` for a sam
 
 ```
 Usage of spicegen:
-  -module-name string
-        Required. The base module name for wiring up imports. e.x. github.com/ben-mays/spicegen
+  -import-path string
+        Required. The fully qualified module path for importing the generated client. e.x. github.com/ben-mays/spicegen/example 
   -o string
         The file or directory to which the generated client will be written. If a directory is given, the output filename will be client.go. If no output is given, current directory is used.
   -op string
@@ -107,7 +107,7 @@ The above tag will result in the generator using `["user"]` as the allowed subje
 ## Example
 
 ```
-go run cmd/spicegen/main.go -s _examples/schema.text -module-name github.com/ben-mays/spicegen -o _examples/ -op authz
+go run cmd/spicegen/main.go -import-path github.com/ben-mays/spicegen/examples -s examples/schema.text -o examples -op authz
 ```
 
 ## TODO

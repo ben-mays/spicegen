@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"os"
 	"path"
-	"strings"
 
 	"github.com/authzed/spicedb/pkg/schemadsl/compiler"
 	"github.com/ben-mays/spicegen/internal"
@@ -34,20 +33,21 @@ func main() {
 	)
 
 	outputImportPath := fs.String(
-		"module-name",
+		"import-path",
 		"",
-		"Required. The base module name for wiring up imports. e.x. github.com/ben-mays/spicegen",
+		"Required. The fully qualified module path for importing the generated client. e.x. github.com/ben-mays/spicegen/example",
 	)
 
 	fs.Parse(os.Args[1:])
 
+	wd, err := os.Getwd()
+	if err != nil {
+		err = fmt.Errorf("Error getting current directory: %s", err.Error())
+		return
+	}
+
 	// Setup output path to PWD if not set
 	if outputPath == nil || *outputPath == "" {
-		wd, err := os.Getwd()
-		if err != nil {
-			err = fmt.Errorf("Error getting current directory: %s", err.Error())
-			return
-		}
 		outputPath = &wd
 	}
 
@@ -56,21 +56,21 @@ func main() {
 		base := path.Base(*outputPath)
 		outputPackageName = &base
 	}
+	fmt.Println(*outputPackageName)
+
+	// if output path is relative, make it abs
+	if !path.IsAbs(*outputPath) {
+		newPath := path.Join(wd, *outputPath)
+		outputPath = &newPath
+	}
 
 	// Setup output file
 	outputFileName := "client.go"
-	outputDir := *outputPath
-	// output path is a file
 	if path.Dir(*outputPath) != *outputPath {
-		outputDir = path.Dir(*outputPath)
 		base := path.Base(*outputPath)
-		if strings.HasSuffix(base, ".go") {
+		if path.Ext(*outputPath) == ".go" {
 			outputFileName = base
-		} else {
-			outputFileName = "client.go"
 		}
-	} else {
-		outputDir = *outputPath
 	}
 
 	if outputImportPath == nil || *outputImportPath == "" {
@@ -79,7 +79,6 @@ func main() {
 		return
 	}
 
-	var err error
 	generatedFilePath := path.Join(*outputPath, outputFileName)
 	permissionPath := path.Join(*outputPath, "permissions")
 	defer func() {
@@ -122,7 +121,7 @@ func main() {
 	}
 	// generate client/resources
 	state := internal.BuildSchema(resp)
-	internal.GenClient(state, *outputPath, outputFileName, *outputPackageName, path.Join(*outputImportPath, outputDir))
+	internal.GenClient(state, *outputPath, outputFileName, *outputPackageName, *outputImportPath)
 	for _, rsc := range state.Resources {
 		internal.GenResource(rsc, permissionPath, rsc.Name)
 	}
