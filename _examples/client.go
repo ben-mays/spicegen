@@ -8,7 +8,6 @@ import (
 	"sync"
 
 	pb "github.com/authzed/authzed-go/proto/authzed/api/v1"
-	spicedb "github.com/authzed/authzed-go/v1"
 	structpb "google.golang.org/protobuf/types/known/structpb"
 
 	"github.com/ben-mays/spicegen/_examples/permissions/document"
@@ -18,14 +17,30 @@ import (
 type ResourceType string
 
 const (
+	User         ResourceType = "user"
 	Organization ResourceType = "organization"
 	Document     ResourceType = "document"
-	User         ResourceType = "user"
 )
 
 type Resource interface {
 	ResourceType() ResourceType
 	ID() string
+}
+
+type UserResource struct {
+	rid string
+}
+
+func (r UserResource) ID() string {
+	return r.rid
+}
+
+func (r UserResource) ResourceType() ResourceType {
+	return User
+}
+
+func NewUserResource(ID string) UserResource {
+	return UserResource{rid: ID}
 }
 
 type OrganizationResource struct {
@@ -60,32 +75,21 @@ func NewDocumentResource(ID string) DocumentResource {
 	return DocumentResource{rid: ID}
 }
 
-type UserResource struct {
-	rid string
-}
-
-func (r UserResource) ID() string {
-	return r.rid
-}
-
-func (r UserResource) ResourceType() ResourceType {
-	return User
-}
-
-func NewUserResource(ID string) UserResource {
-	return UserResource{rid: ID}
+type SpicedbClient interface {
+	pb.PermissionsServiceClient
+	pb.SchemaServiceClient
 }
 
 // Client is a SpiceDB client that can be used to check permissions on resources. It is safe for concurrent use.
 type Client struct {
 	sync.RWMutex
 
-	spicedbClient *spicedb.Client
+	spicedbClient SpicedbClient
 	// Lock protects lastZedToken from
 	lastZedToken string
 }
 
-func NewClient(spicedbClient *spicedb.Client) *Client {
+func NewClient(spicedbClient SpicedbClient) *Client {
 	return &Client{
 		spicedbClient: spicedbClient,
 	}
@@ -130,7 +134,7 @@ func (c *Client) CheckPermission(ctx context.Context, subject Resource, permissi
 	return resp.Permissionship == pb.CheckPermissionResponse_PERMISSIONSHIP_HAS_PERMISSION, nil
 }
 
-func (c *Client) CheckOrganizationPermission(ctx context.Context, resource OrganizationResource, permission organization.OrganizationPermission, subject User, opts *CheckPermissionOptions) (bool, error) {
+func (c *Client) CheckOrganizationPermission(ctx context.Context, resource OrganizationResource, permission organization.OrganizationPermission, subject UserResource, opts *CheckPermissionOptions) (bool, error) {
 	if organization.ALLOWED_PERMISSION_SUBJECT_TYPES[permission][string(subject.ResourceType())] || organization.ALLOWED_PERMISSION_SUBJECT_TYPES[permission]["*"] {
 		return c.CheckPermission(ctx, subject, string(permission), resource, opts)
 	} else {
@@ -183,7 +187,7 @@ func (c *Client) AddRelationship(ctx context.Context, resource Resource, relatio
 	return true, nil
 }
 
-func (c *Client) AddOrganizationRelationship(ctx context.Context, resource OrganizationResource, relation organization.OrganizationRelation, subject User, opts *AddRelationshipOptions) (bool, error) {
+func (c *Client) AddOrganizationRelationship(ctx context.Context, resource OrganizationResource, relation organization.OrganizationRelation, subject UserResource, opts *AddRelationshipOptions) (bool, error) {
 	if organization.ALLOWED_RELATION_SUBJECT_TYPES[relation][string(subject.ResourceType())] || organization.ALLOWED_RELATION_SUBJECT_TYPES[relation]["*"] {
 		return c.AddRelationship(ctx, resource, string(relation), subject, opts)
 	} else {
@@ -212,7 +216,7 @@ func (c *Client) DeleteRelationship(ctx context.Context, resource Resource, rela
 	return true, nil
 }
 
-func (c *Client) DeleteOrganizationRelationship(ctx context.Context, resource OrganizationResource, relation organization.OrganizationRelation, subject User) (bool, error) {
+func (c *Client) DeleteOrganizationRelationship(ctx context.Context, resource OrganizationResource, relation organization.OrganizationRelation, subject UserResource) (bool, error) {
 	return c.DeleteRelationship(ctx, resource, string(relation), subject)
 }
 
