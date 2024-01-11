@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"os"
 	"path"
+	"strings"
 
 	"github.com/authzed/spicedb/pkg/schemadsl/compiler"
 	"github.com/ben-mays/spicegen/internal"
@@ -17,19 +18,25 @@ func main() {
 	schemaPath := fs.String(
 		"s",
 		"schema.text",
-		"Path to schema file for generation. If none given, the tool will look for schema.text in the current directory.",
+		"Optional. Path to schema file for generation. If none given, the tool will look for schema.text in the current directory.",
 	)
 
 	outputPath := fs.String(
 		"o",
 		"",
-		"The file or directory to which the generated client will be written. If a directory is given, the output filename will be client.go. If no output is given, current directory is used.",
+		"Optional. The file or directory to which the generated client will be written. If a directory is given, the output filename will be client.go. If no output is given, current directory is used.",
 	)
 
 	outputPackageName := fs.String(
 		"op",
 		"",
-		"The package name of the generated client. This will default to the output directory name if not given.",
+		"Optional. The package name of the generated client. This will default to the output directory name if not given.",
+	)
+
+	ignorePrefix := fs.String(
+		"ignore-prefix",
+		"",
+		"Optional. A prefix string to match against permission/relation names to ignore. Used to avoid exposing implicit permissions.",
 	)
 
 	outputImportPath := fs.String(
@@ -120,6 +127,21 @@ func main() {
 	}
 	// generate client/resources
 	state := internal.BuildSchema(resp)
+	if ignorePrefix != nil && *ignorePrefix != "" {
+		// delete ignored keys from state to avoid rendering them
+		for _, resource := range state.Resources {
+			for key := range resource.Permissions {
+				if strings.HasPrefix(key, *ignorePrefix) {
+					delete(resource.Permissions, key)
+				}
+			}
+			for key := range resource.Relations {
+				if strings.HasPrefix(key, *ignorePrefix) {
+					delete(resource.Relations, key)
+				}
+			}
+		}
+	}
 	internal.GenClient(state, *outputPath, outputFileName, *outputPackageName, *outputImportPath)
 	for _, rsc := range state.Resources {
 		internal.GenResource(rsc, permissionPath, rsc.Name)

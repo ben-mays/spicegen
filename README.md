@@ -113,4 +113,3 @@ go run cmd/spicegen/main.go -import-path github.com/ben-mays/spicegen/examples -
 ## TODO
 * Support caveat types
 * Auto mapping allowed types
-* Ignore regex
