@@ -8,7 +8,6 @@ import (
 	"fmt"
 
 	pb "github.com/authzed/authzed-go/proto/authzed/api/v1"
-	spicedb "github.com/authzed/authzed-go/v1"
 	structpb "google.golang.org/protobuf/types/known/structpb"
 
 
@@ -48,16 +47,22 @@ func New{{ $resource }}Resource(ID string) {{ $resource }}Resource {
 }
 {{end}}
 
+type SpicedbClient interface {
+	pb.PermissionsServiceClient
+	pb.SchemaServiceClient
+}
+
+
 // Client is a SpiceDB client that can be used to check permissions on resources. It is safe for concurrent use.
 type Client struct {
 	sync.RWMutex
 
-	spicedbClient *spicedb.Client
+	spicedbClient SpicedbClient
 	// Lock protects lastZedToken from 
 	lastZedToken string
 }
 
-func NewClient(spicedbClient *spicedb.Client) *Client { 
+func NewClient(spicedbClient SpicedbClient) *Client { 
 	return &Client{
 		spicedbClient: spicedbClient,
 	} 
