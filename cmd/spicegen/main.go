@@ -56,7 +56,6 @@ func main() {
 		base := path.Base(*outputPath)
 		outputPackageName = &base
 	}
-	fmt.Println(*outputPackageName)
 
 	// if output path is relative, make it abs
 	if !path.IsAbs(*outputPath) {
@@ -74,7 +73,7 @@ func main() {
 	}
 
 	if outputImportPath == nil || *outputImportPath == "" {
-		fmt.Println("Flag `module-name` is required.")
+		fmt.Println("Flag `input-path` is required.")
 		fs.Usage()
 		return
 	}
