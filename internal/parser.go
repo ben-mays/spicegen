@@ -157,7 +157,6 @@ func parseMetatags(comments []*anypb.Any) metatag {
 				split := strings.Split(tag, "=")
 				tag = split[0]
 				tagval = split[1]
-				fmt.Printf("parsed metatag: %s=%s\n", tag, tagval)
 			}
 			switch tag {
 			case "subject_type":
