@@ -58,7 +58,7 @@ type Client struct {
 	sync.RWMutex
 
 	spicedbClient SpicedbClient
-	// Lock protects lastZedToken from 
+	// Lock protects lastZedToken. Updated whenever a write occurs to provide read-my-write semantics. 
 	lastZedToken string
 }
 
@@ -103,7 +103,6 @@ func (c *Client) CheckPermission(ctx context.Context, subject Resource, permissi
 	if err != nil {
 		return false, err
 	}
-	c.lastZedToken = resp.CheckedAt.Token
 	return resp.Permissionship == pb.CheckPermissionResponse_PERMISSIONSHIP_HAS_PERMISSION, nil
 }
 
@@ -121,6 +120,7 @@ func (c *Client) Check{{ $resource }}Permission(ctx context.Context, resource {{
 
 type AddRelationshipOptions struct {
 	Caveat *pb.ContextualizedCaveat
+	OptionalRelation string
 }
 
 func (c *Client) AddRelationship(ctx context.Context, resource Resource, relation string, subject Resource, opts *AddRelationshipOptions) (bool, error) {
@@ -139,6 +139,7 @@ func (c *Client) AddRelationship(ctx context.Context, resource Resource, relatio
 						ObjectType: string(subject.ResourceType()),
 						ObjectId:   subject.ID(),
 					},
+					OptionalRelation: opts.OptionalRelation,
 				},
 				Relation: relation,
 				Resource: &pb.ObjectReference{
