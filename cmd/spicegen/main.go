@@ -109,7 +109,7 @@ func main() {
 	}
 
 	prefix := ""
-	resp, err := compiler.Compile(compiler.InputSchema{SchemaString: string(schematxt)}, &prefix)
+	resp, err := compiler.Compile(compiler.InputSchema{SchemaString: string(schematxt)}, compiler.ObjectTypePrefix(prefix))
 	if err != nil {
 		err = fmt.Errorf("Error compiling schema file: %s", err.Error())
 		return
