@@ -142,6 +142,7 @@ func main() {
 			}
 		}
 	}
+	internal.GenTypes(state, *outputPath, "types.go", *outputPackageName, *outputImportPath)
 	internal.GenClient(state, *outputPath, outputFileName, *outputPackageName, *outputImportPath)
 	for _, rsc := range state.Resources {
 		internal.GenResource(rsc, permissionPath, rsc.Name)

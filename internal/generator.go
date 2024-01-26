@@ -14,6 +14,9 @@ import (
 	"golang.org/x/exp/maps"
 )
 
+//go:embed types.text
+var typestmptext string
+
 //go:embed client.text
 var clienttmptext string
 
@@ -45,7 +48,20 @@ func genFormattedSource(context any, templateTxt, outputDir, filename string) {
 	}
 }
 
+func GenTypes(state Schema, outputDir, outputFileName, packageName string, resourceImportPath string) {
+	genFormattedSource(struct {
+		PackageName string
+		ImportPath  string
+		Resources   []Resource
+	}{PackageName: packageName, ImportPath: resourceImportPath, Resources: maps.Values(state.Resources)}, typestmptext, outputDir, outputFileName)
+}
+
 func GenClient(state Schema, outputDir, outputFileName, packageName string, resourceImportPath string) {
+	genFormattedSource(struct {
+		PackageName string
+		ImportPath  string
+		Resources   []Resource
+	}{PackageName: packageName, ImportPath: resourceImportPath, Resources: maps.Values(state.Resources)}, typestmptext, outputDir, outputFileName)
 	genFormattedSource(struct {
 		PackageName string
 		ImportPath  string

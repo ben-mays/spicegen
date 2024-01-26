@@ -107,9 +107,11 @@ The above tag will result in the generator using `["user"]` as the allowed subje
 ## Example
 
 ```
-go run cmd/spicegen/main.go -import-path github.com/ben-mays/spicegen/examples -s examples/schema.text -o examples -op authz
+go run cmd/spicegen/main.go -import-path github.com/ben-mays/spicegen/_examples -s _examples/schema.text -o _examples -op authz 
 ```
 
 ## TODO
 * Support caveat types
 * Auto mapping allowed types
+* Auto-add optional relations
+* Functional opts
