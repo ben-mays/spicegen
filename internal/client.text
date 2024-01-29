@@ -6,6 +6,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"io"
 
 	pb "github.com/authzed/authzed-go/proto/authzed/api/v1"
 	structpb "google.golang.org/protobuf/types/known/structpb"
@@ -23,19 +24,14 @@ type SpiceDBClient interface {
 }
 
 type SpiceGenClient interface {
-	{{ range $rsc := .Resources }}{{ $resource := $rsc.Name | ToCamel }}
-	{{ if $rsc.Permissions }}
-	{{ $subjectType := $rsc.PermissionSubjectType | ToCamel }} 
+	{{ range $rsc := .Resources }}{{ $resource := $rsc.Name | ToCamel }}{{ if $rsc.Permissions }}{{ $subjectType := $rsc.PermissionSubjectType | ToCamel }} 
 	Check{{ $resource }}Permission(ctx context.Context, resource {{ $resource }}Resource, permission {{ $rsc.Name }}.{{ $resource }}Permission, subject {{ $subjectType }}, opts *CheckPermissionOptions) (bool, error){{ end }}{{ end}}
-	{{ range $rsc := .Resources }}{{ $resource := $rsc.Name | ToCamel }}
-	{{ if $rsc.Relations }}
-	{{ $subjectType := $rsc.RelationSubjectType | ToCamel }}
+	{{ range $rsc := .Resources }}{{ $resource := $rsc.Name | ToCamel }}{{ if $rsc.Relations }}{{ $subjectType := $rsc.RelationSubjectType | ToCamel }}
 	Add{{ $resource }}Relationship(ctx context.Context, resource {{ $resource }}Resource, relation {{ $rsc.Name }}.{{ $resource }}Relation, subject {{ $subjectType }}, opts *AddRelationshipOptions) error{{ end }}{{ end}}
-	{{ range $rsc := .Resources }}{{ $resource := $rsc.Name | ToCamel }}
-	{{ if $rsc.Relations }} 
-	{{ $subjectType := $rsc.RelationSubjectType | ToCamel }}
+	{{ range $rsc := .Resources }}{{ $resource := $rsc.Name | ToCamel }} {{ if $rsc.Relations }} {{ $subjectType := $rsc.RelationSubjectType | ToCamel }}
 	Delete{{ $resource }}Relationship(ctx context.Context, resource {{ $resource }}Resource, relation {{ $rsc.Name }}.{{ $resource }}Relation, subject {{ $subjectType }}) error{{ end }}{{ end}}
-
+	{{ range $rsc := .Resources }}{{ $resource := $rsc.Name | ToCamel }}{{ if $rsc.Permissions }} {{ $subjectType := $rsc.PermissionSubjectType | ToCamel }}
+	Lookup{{ $resource }}Resources(ctx context.Context, subject {{ $subjectType }}, permission {{ $rsc.Name }}.{{ $resource }}Permission, opts *LookupResourcesOptions)  ([]Resource, error) {{ end }}{{ end}}
 }
 
 // Client is a SpiceDB client that can be used to check permissions on resources. It is safe for concurrent use. This client implements SpiceGenClient.
@@ -157,6 +153,7 @@ func (c *Client) Add{{ $resource }}Relationship(ctx context.Context, resource {{
 } {{ end }}
 {{ end}}
 
+
 func (c *Client) DeleteRelationship(ctx context.Context, resource Resource, relation string, subject Resource) (error) {
 	c.Lock()
 	defer c.Unlock()
@@ -175,5 +172,57 @@ func (c *Client) DeleteRelationship(ctx context.Context, resource Resource, rela
 {{ $subjectType := $rsc.RelationSubjectType | ToCamel }}
 func (c *Client) Delete{{ $resource }}Relationship(ctx context.Context, resource {{ $resource }}Resource, relation {{ $rsc.Name }}.{{ $resource }}Relation, subject {{ $subjectType }}) (error) {
 	return c.DeleteRelationship(ctx, resource, string(relation), subject)
+} {{ end }}
+{{ end}}
+
+func (c *Client) LookupResources(ctx context.Context, resourceType ResourceType, subject Resource, permission string, opts *LookupResourcesOptions) ([]Resource, error) {
+	c.RLock()
+	defer c.RUnlock()
+	subjectRef := &pb.SubjectReference{
+		Object: &pb.ObjectReference{
+			ObjectType: string(subject.ResourceType()),
+			ObjectId:   subject.ID(),
+		},
+	}
+	if opts != nil && opts.OptionalSubjectRelation != "" {
+		subjectRef.OptionalRelation = opts.OptionalSubjectRelation
+	}
+	client, err := c.spicedbClient.LookupResources(ctx, &pb.LookupResourcesRequest{
+		Consistency: c.getConsistency(),
+		ResourceObjectType: string(resourceType),
+		Permission: permission,
+		Subject: subjectRef,
+	})
+	if err != nil {
+		return nil, err
+	}
+	resources := make([]Resource, 0)
+	for {
+		resp, err := client.Recv()
+		if resp != nil && resp.ResourceObjectId != "" {
+			// suppress error because we _know_ this is a correct resource type given the generation
+			resource, _ := NewResource(resourceType, resp.ResourceObjectId)
+			resources = append(resources, resource)
+		}
+		if err != nil {
+			if err == io.EOF {
+				break
+			} else {
+				return nil, err
+			}
+		}
+	}
+	return resources, nil
+}
+
+type LookupResourcesOptions struct {
+	OptionalSubjectRelation string
+}
+
+{{ range $rsc := .Resources }}{{ $resource := $rsc.Name | ToCamel }}
+{{ if $rsc.Permissions }} 
+{{ $subjectType := $rsc.PermissionSubjectType | ToCamel }}
+func (c *Client) Lookup{{ $resource }}Resources(ctx context.Context, subject {{ $subjectType }}, permission {{ $rsc.Name }}.{{ $resource }}Permission, opts *LookupResourcesOptions)  ([]Resource, error) {
+	return c.LookupResources(ctx, {{ $resource }}, subject, string(permission), opts)
 } {{ end }}
 {{ end}}
