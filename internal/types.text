@@ -51,8 +51,8 @@ func New{{ $resource }}Resource(ID string) {{ $resource }}Resource {
 	return {{ $resource }}Resource{rid: ID}
 }
 {{end}}
-
-type SpiceGenClient interface {
+{{$InterfaceName := .InterfaceName}}
+type {{$InterfaceName}} interface {
 	{{ range $rsc := .Resources }}{{ $resource := $rsc.Name | ToCamel }}{{ if $rsc.Permissions }}{{ $subjectType := $rsc.PermissionSubjectType | ToCamel }} 
 	Check{{ $resource }}Permission(ctx context.Context, subject {{ $subjectType }}, permission {{ $rsc.Name }}.{{ $resource }}Permission, resource {{ $resource }}Resource, opts *CheckPermissionOptions) (bool, error){{ end }}{{ end}}
 	{{ range $rsc := .Resources }}{{ $resource := $rsc.Name | ToCamel }}{{ if $rsc.Relations }}{{ $subjectType := $rsc.RelationSubjectType | ToCamel }}

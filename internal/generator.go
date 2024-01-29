@@ -31,9 +31,10 @@ func genFormattedSource(context any, templateTxt, outputDir, filename string) {
 	}
 	buf := &strings.Builder{}
 	tmpl.Execute(buf, context)
-	res, err := format.Source([]byte(buf.String()))
+	s := buf.String()
+	res, err := format.Source([]byte(s))
 	if err != nil {
-		fmt.Println(buf.String())
+		fmt.Println(s)
 		panic(fmt.Errorf("Error formatting source: %s", err.Error()))
 	}
 	err = os.Mkdir(outputDir, 0755)
@@ -48,25 +49,23 @@ func genFormattedSource(context any, templateTxt, outputDir, filename string) {
 	}
 }
 
-func GenTypes(state Schema, outputDir, outputFileName, packageName string, resourceImportPath string) {
+func GenTypes(state Schema, outputDir, outputFileName, packageName string, interfaceName string, resourceImportPath string) {
 	genFormattedSource(struct {
-		PackageName string
-		ImportPath  string
-		Resources   []Resource
-	}{PackageName: packageName, ImportPath: resourceImportPath, Resources: maps.Values(state.Resources)}, typestmptext, outputDir, outputFileName)
+		PackageName   string
+		InterfaceName string
+		ImportPath    string
+		Resources     []Resource
+	}{PackageName: packageName, InterfaceName: interfaceName, ImportPath: resourceImportPath, Resources: maps.Values(state.Resources)}, typestmptext, outputDir, outputFileName)
 }
 
-func GenClient(state Schema, outputDir, outputFileName, packageName string, resourceImportPath string) {
+func GenClient(state Schema, outputDir, outputFileName, packageName string, clientName string, interfaceName string, resourceImportPath string) {
 	genFormattedSource(struct {
-		PackageName string
-		ImportPath  string
-		Resources   []Resource
-	}{PackageName: packageName, ImportPath: resourceImportPath, Resources: maps.Values(state.Resources)}, typestmptext, outputDir, outputFileName)
-	genFormattedSource(struct {
-		PackageName string
-		ImportPath  string
-		Resources   []Resource
-	}{PackageName: packageName, ImportPath: resourceImportPath, Resources: maps.Values(state.Resources)}, clienttmptext, outputDir, outputFileName)
+		PackageName   string
+		ClientName    string
+		InterfaceName string
+		ImportPath    string
+		Resources     []Resource
+	}{PackageName: packageName, ClientName: clientName, InterfaceName: interfaceName, ImportPath: resourceImportPath, Resources: maps.Values(state.Resources)}, clienttmptext, outputDir, outputFileName)
 }
 
 func GenResource(rsc Resource, outputDir, packageName string) {

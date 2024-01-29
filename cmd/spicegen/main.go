@@ -33,6 +33,18 @@ func main() {
 		"Optional. The package name of the generated client. This will default to the output directory name if not given.",
 	)
 
+	outputClientName := fs.String(
+		"client-name",
+		"Client",
+		"Optional. The name of the client impl created by spicegen.",
+	)
+
+	outputInterfaceName := fs.String(
+		"interface-name",
+		"SpiceGenClient",
+		"Optional. The name of the client interface created by spicegen.",
+	)
+
 	ignorePrefix := fs.String(
 		"ignore-prefix",
 		"",
@@ -51,7 +63,11 @@ func main() {
 		"Optional. If present, will skip client generation and only generate types and permissions.",
 	)
 
-	fs.Parse(os.Args[1:])
+	err := fs.Parse(os.Args[1:])
+	if err != nil {
+		fmt.Printf("Error parsing flags: %s", err.Error())
+		return
+	}
 
 	wd, err := os.Getwd()
 	if err != nil {
@@ -148,10 +164,10 @@ func main() {
 		}
 	}
 	fmt.Printf("writing types to %s with packageName %s\n", path.Join(*outputPath, "types.go"), *outputPackageName)
-	internal.GenTypes(state, *outputPath, "types.go", *outputPackageName, *outputImportPath)
+	internal.GenTypes(state, *outputPath, "types.go", *outputPackageName, *outputInterfaceName, *outputImportPath)
 	if !*skipClientGeneration {
 		fmt.Printf("writing client to %s with packageName %s\n", path.Join(*outputPath, outputFileName), *outputPackageName)
-		internal.GenClient(state, *outputPath, outputFileName, *outputPackageName, *outputImportPath)
+		internal.GenClient(state, *outputPath, outputFileName, *outputPackageName, *outputClientName, *outputInterfaceName, *outputImportPath)
 	}
 	for _, rsc := range state.Resources {
 		internal.GenResource(rsc, permissionPath, rsc.Name)

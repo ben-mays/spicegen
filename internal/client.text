@@ -16,7 +16,8 @@ import (
 	{{ range $rsc := .Resources }}{{ if $rsc.Relations }}"{{ $import }}/permissions/{{ $rsc.Name }}"{{end}}
 	{{end}}
 )
-
+{{$ClientName := .ClientName}}
+{{$InterfaceName := .InterfaceName}}
 // SpiceDBClient is the interface that the spicegen generated client wraps.
 type SpiceDBClient interface {
 	pb.PermissionsServiceClient
@@ -24,8 +25,8 @@ type SpiceDBClient interface {
 }
 
 
-// Client is a SpiceDB client that can be used to check permissions on resources. It is safe for concurrent use. This client implements SpiceGenClient.
-type Client struct {
+// {{.ClientName}} is a SpiceDB client that can be used to check permissions on resources. It is safe for concurrent use. This client implements {{.InterfaceName}}.
+type {{.ClientName}} struct {
 	sync.RWMutex
 
 	spicedbClient SpiceDBClient
@@ -33,17 +34,17 @@ type Client struct {
 	lastZedToken string
 }
 
-func NewClient(spicedbClient SpiceDBClient) SpiceGenClient { 
-	return &Client{
+func New{{.ClientName}}(spicedbClient SpiceDBClient) {{.InterfaceName}} { 
+	return &{{.ClientName}}{
 		spicedbClient: spicedbClient,
 	} 
 }
 
-func (c *Client) getConsistency() *pb.Consistency {
+func (c *{{.ClientName}}) getConsistency() *pb.Consistency {
 	return &pb.Consistency{Requirement: &pb.Consistency_AtLeastAsFresh{AtLeastAsFresh: &pb.ZedToken{Token: c.lastZedToken}}}
 }
 
-func (c *Client) CheckPermission(ctx context.Context, subject Resource, permission string, resource Resource, opts *CheckPermissionOptions) (bool, error) {
+func (c *{{.ClientName}}) CheckPermission(ctx context.Context, subject Resource, permission string, resource Resource, opts *CheckPermissionOptions) (bool, error) {
 	c.RLock()
 	defer c.RUnlock()
 	var consistency *pb.Consistency
@@ -75,7 +76,7 @@ func (c *Client) CheckPermission(ctx context.Context, subject Resource, permissi
 {{ range $rsc := .Resources }}{{ $resource := $rsc.Name | ToCamel }}
 {{ if $rsc.Permissions }}
 {{ $subjectType := $rsc.PermissionSubjectType | ToCamel }} 
-func (c *Client) Check{{ $resource }}Permission(ctx context.Context, subject {{ $subjectType }}, permission {{ $rsc.Name }}.{{ $resource }}Permission, resource {{ $resource }}Resource, opts *CheckPermissionOptions) (bool, error) {
+func (c *{{$ClientName}}) Check{{ $resource }}Permission(ctx context.Context, subject {{ $subjectType }}, permission {{ $rsc.Name }}.{{ $resource }}Permission, resource {{ $resource }}Resource, opts *CheckPermissionOptions) (bool, error) {
 	if {{ $rsc.Name }}.ALLOWED_PERMISSION_SUBJECT_TYPES[permission][string(subject.ResourceType())] || {{ $rsc.Name }}.ALLOWED_PERMISSION_SUBJECT_TYPES[permission]["*"] {
 		return c.CheckPermission(ctx, subject, string(permission), resource, opts)
 	} else {
@@ -84,7 +85,7 @@ func (c *Client) Check{{ $resource }}Permission(ctx context.Context, subject {{ 
 } {{ end }}
 {{ end}}
 
-func (c *Client) AddRelationship(ctx context.Context, resource Resource, relation string, subject Resource, opts *AddRelationshipOptions) (error) {
+func (c *{{$ClientName}}) AddRelationship(ctx context.Context, resource Resource, relation string, subject Resource, opts *AddRelationshipOptions) (error) {
 	c.Lock()
 	defer c.Unlock()
 	var caveat *pb.ContextualizedCaveat
@@ -124,7 +125,7 @@ func (c *Client) AddRelationship(ctx context.Context, resource Resource, relatio
 {{ range $rsc := .Resources }}{{ $resource := $rsc.Name | ToCamel }}
 {{ if $rsc.Relations }}
 {{ $subjectType := $rsc.RelationSubjectType | ToCamel }}
-func (c *Client) Add{{ $resource }}Relationship(ctx context.Context, resource {{ $resource }}Resource, relation {{ $rsc.Name }}.{{ $resource }}Relation, subject {{ $subjectType }}, opts *AddRelationshipOptions) (error) {
+func (c *{{$ClientName}}) Add{{ $resource }}Relationship(ctx context.Context, resource {{ $resource }}Resource, relation {{ $rsc.Name }}.{{ $resource }}Relation, subject {{ $subjectType }}, opts *AddRelationshipOptions) (error) {
 	if {{ $rsc.Name }}.ALLOWED_RELATION_SUBJECT_TYPES[relation][string(subject.ResourceType())] || {{ $rsc.Name }}.ALLOWED_RELATION_SUBJECT_TYPES[relation]["*"] {
 		return c.AddRelationship(ctx, resource, string(relation), subject, opts)
 	} else {
@@ -134,7 +135,7 @@ func (c *Client) Add{{ $resource }}Relationship(ctx context.Context, resource {{
 {{ end}}
 
 
-func (c *Client) DeleteRelationship(ctx context.Context, resource Resource, relation string, subject Resource, opts *DeleteRelationshipOptions) (error) {
+func (c *{{$ClientName}}) DeleteRelationship(ctx context.Context, resource Resource, relation string, subject Resource, opts *DeleteRelationshipOptions) (error) {
 	c.Lock()
 	defer c.Unlock()
 	subjectFilter := &pb.SubjectFilter{SubjectType: string(subject.ResourceType()), OptionalSubjectId: subject.ID()}
@@ -154,12 +155,12 @@ func (c *Client) DeleteRelationship(ctx context.Context, resource Resource, rela
 {{ range $rsc := .Resources }}{{ $resource := $rsc.Name | ToCamel }}
 {{ if $rsc.Relations }} 
 {{ $subjectType := $rsc.RelationSubjectType | ToCamel }}
-func (c *Client) Delete{{ $resource }}Relationship(ctx context.Context, resource {{ $resource }}Resource, relation {{ $rsc.Name }}.{{ $resource }}Relation, subject {{ $subjectType }}, opts *DeleteRelationshipOptions) (error) {
+func (c *{{$ClientName}}) Delete{{ $resource }}Relationship(ctx context.Context, resource {{ $resource }}Resource, relation {{ $rsc.Name }}.{{ $resource }}Relation, subject {{ $subjectType }}, opts *DeleteRelationshipOptions) (error) {
 	return c.DeleteRelationship(ctx, resource, string(relation), subject, opts)
 } {{ end }}
 {{ end}}
 
-func (c *Client) LookupResources(ctx context.Context, resourceType ResourceType, subject Resource, permission string, opts *LookupResourcesOptions) ([]Resource, error) {
+func (c *{{$ClientName}}) LookupResources(ctx context.Context, resourceType ResourceType, subject Resource, permission string, opts *LookupResourcesOptions) ([]Resource, error) {
 	c.RLock()
 	defer c.RUnlock()
 	subjectRef := &pb.SubjectReference{
@@ -202,7 +203,7 @@ func (c *Client) LookupResources(ctx context.Context, resourceType ResourceType,
 {{ range $rsc := .Resources }}{{ $resource := $rsc.Name | ToCamel }}
 {{ if $rsc.Permissions }} 
 {{ $subjectType := $rsc.PermissionSubjectType | ToCamel }}
-func (c *Client) Lookup{{ $resource }}Resources(ctx context.Context, subject {{ $subjectType }}, permission {{ $rsc.Name }}.{{ $resource }}Permission, opts *LookupResourcesOptions)  ([]Resource, error) {
+func (c *{{$ClientName}}) Lookup{{ $resource }}Resources(ctx context.Context, subject {{ $subjectType }}, permission {{ $rsc.Name }}.{{ $resource }}Permission, opts *LookupResourcesOptions)  ([]Resource, error) {
 	return c.LookupResources(ctx, {{ $resource }}, subject, string(permission), opts)
 } {{ end }}
 {{ end}}
