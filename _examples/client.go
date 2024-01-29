@@ -21,20 +21,6 @@ type SpiceDBClient interface {
 	pb.SchemaServiceClient
 }
 
-type SpiceGenClient interface {
-	CheckOrganizationPermission(ctx context.Context, resource OrganizationResource, permission organization.OrganizationPermission, subject UserResource, opts *CheckPermissionOptions) (bool, error)
-	CheckDocumentPermission(ctx context.Context, resource DocumentResource, permission document.DocumentPermission, subject Resource, opts *CheckPermissionOptions) (bool, error)
-
-	AddOrganizationRelationship(ctx context.Context, resource OrganizationResource, relation organization.OrganizationRelation, subject UserResource, opts *AddRelationshipOptions) error
-	AddDocumentRelationship(ctx context.Context, resource DocumentResource, relation document.DocumentRelation, subject Resource, opts *AddRelationshipOptions) error
-
-	DeleteOrganizationRelationship(ctx context.Context, resource OrganizationResource, relation organization.OrganizationRelation, subject UserResource) error
-	DeleteDocumentRelationship(ctx context.Context, resource DocumentResource, relation document.DocumentRelation, subject Resource) error
-
-	LookupOrganizationResources(ctx context.Context, subject UserResource, permission organization.OrganizationPermission, opts *LookupResourcesOptions) ([]Resource, error)
-	LookupDocumentResources(ctx context.Context, subject Resource, permission document.DocumentPermission, opts *LookupResourcesOptions) ([]Resource, error)
-}
-
 // Client is a SpiceDB client that can be used to check permissions on resources. It is safe for concurrent use. This client implements SpiceGenClient.
 type Client struct {
 	sync.RWMutex
@@ -48,11 +34,6 @@ func NewClient(spicedbClient SpiceDBClient) SpiceGenClient {
 	return &Client{
 		spicedbClient: spicedbClient,
 	}
-}
-
-type CheckPermissionOptions struct {
-	Context     *structpb.Struct
-	Consistency *pb.Consistency
 }
 
 func (c *Client) getConsistency() *pb.Consistency {
@@ -88,7 +69,7 @@ func (c *Client) CheckPermission(ctx context.Context, subject Resource, permissi
 	return resp.Permissionship == pb.CheckPermissionResponse_PERMISSIONSHIP_HAS_PERMISSION, nil
 }
 
-func (c *Client) CheckOrganizationPermission(ctx context.Context, resource OrganizationResource, permission organization.OrganizationPermission, subject UserResource, opts *CheckPermissionOptions) (bool, error) {
+func (c *Client) CheckOrganizationPermission(ctx context.Context, subject UserResource, permission organization.OrganizationPermission, resource OrganizationResource, opts *CheckPermissionOptions) (bool, error) {
 	if organization.ALLOWED_PERMISSION_SUBJECT_TYPES[permission][string(subject.ResourceType())] || organization.ALLOWED_PERMISSION_SUBJECT_TYPES[permission]["*"] {
 		return c.CheckPermission(ctx, subject, string(permission), resource, opts)
 	} else {
@@ -96,17 +77,12 @@ func (c *Client) CheckOrganizationPermission(ctx context.Context, resource Organ
 	}
 }
 
-func (c *Client) CheckDocumentPermission(ctx context.Context, resource DocumentResource, permission document.DocumentPermission, subject Resource, opts *CheckPermissionOptions) (bool, error) {
+func (c *Client) CheckDocumentPermission(ctx context.Context, subject Resource, permission document.DocumentPermission, resource DocumentResource, opts *CheckPermissionOptions) (bool, error) {
 	if document.ALLOWED_PERMISSION_SUBJECT_TYPES[permission][string(subject.ResourceType())] || document.ALLOWED_PERMISSION_SUBJECT_TYPES[permission]["*"] {
 		return c.CheckPermission(ctx, subject, string(permission), resource, opts)
 	} else {
 		return false, errors.New(fmt.Sprintf("subject type not allowed for permission %s", string(permission)))
 	}
-}
-
-type AddRelationshipOptions struct {
-	Caveat           *pb.ContextualizedCaveat
-	OptionalRelation string
 }
 
 func (c *Client) AddRelationship(ctx context.Context, resource Resource, relation string, subject Resource, opts *AddRelationshipOptions) error {
@@ -122,8 +98,8 @@ func (c *Client) AddRelationship(ctx context.Context, resource Resource, relatio
 			ObjectId:   subject.ID(),
 		},
 	}
-	if opts != nil && opts.OptionalRelation != "" {
-		subjectRef.OptionalRelation = opts.OptionalRelation
+	if opts != nil && opts.OptionalSubjectRelation != "" {
+		subjectRef.OptionalRelation = opts.OptionalSubjectRelation
 	}
 	resp, err := c.spicedbClient.WriteRelationships(ctx, &pb.WriteRelationshipsRequest{
 		Updates: []*pb.RelationshipUpdate{{
@@ -221,10 +197,6 @@ func (c *Client) LookupResources(ctx context.Context, resourceType ResourceType,
 		}
 	}
 	return resources, nil
-}
-
-type LookupResourcesOptions struct {
-	OptionalSubjectRelation string
 }
 
 func (c *Client) LookupOrganizationResources(ctx context.Context, subject UserResource, permission organization.OrganizationPermission, opts *LookupResourcesOptions) ([]Resource, error) {

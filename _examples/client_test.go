@@ -110,17 +110,17 @@ func TestSpiceDB(t *testing.T) {
 
 	// Can org admin Ben view doc:readme? Expectation: yes
 	allowed, err := svc.CheckDocumentPermission(ctx,
-		authz.NewDocumentResource("readme"),
+		authz.NewUserResource("ben"),
 		document.ViewPermission,
-		authz.NewUserResource("ben"), nil)
+		authz.NewDocumentResource("readme"), nil)
 	assert.Nil(t, err)
 	assert.True(t, allowed)
 
 	// Can Alice view doc:readme? Expectation: no
 	allowed, err = svc.CheckDocumentPermission(ctx,
-		authz.NewDocumentResource("readme"),
+		authz.NewUserResource("alice"),
 		document.ViewPermission,
-		authz.NewUserResource("alice"), nil)
+		authz.NewDocumentResource("readme"), nil)
 	assert.Nil(t, err)
 	assert.False(t, allowed)
 

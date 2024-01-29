@@ -2,7 +2,13 @@
 package authz
 
 import (
+	"context"
 	"errors"
+	pb "github.com/authzed/authzed-go/proto/authzed/api/v1"
+	structpb "google.golang.org/protobuf/types/known/structpb"
+
+	"github.com/ben-mays/spicegen/examples/permissions/document"
+	"github.com/ben-mays/spicegen/examples/permissions/organization"
 )
 
 type ResourceType string
@@ -80,4 +86,32 @@ func (r DocumentResource) ResourceType() ResourceType {
 
 func NewDocumentResource(ID string) DocumentResource {
 	return DocumentResource{rid: ID}
+}
+
+type SpiceGenClient interface {
+	CheckOrganizationPermission(ctx context.Context, subject UserResource, permission organization.OrganizationPermission, resource OrganizationResource, opts *CheckPermissionOptions) (bool, error)
+	CheckDocumentPermission(ctx context.Context, subject Resource, permission document.DocumentPermission, resource DocumentResource, opts *CheckPermissionOptions) (bool, error)
+
+	AddOrganizationRelationship(ctx context.Context, resource OrganizationResource, relation organization.OrganizationRelation, subject UserResource, opts *AddRelationshipOptions) error
+	AddDocumentRelationship(ctx context.Context, resource DocumentResource, relation document.DocumentRelation, subject Resource, opts *AddRelationshipOptions) error
+
+	DeleteOrganizationRelationship(ctx context.Context, resource OrganizationResource, relation organization.OrganizationRelation, subject UserResource) error
+	DeleteDocumentRelationship(ctx context.Context, resource DocumentResource, relation document.DocumentRelation, subject Resource) error
+
+	LookupOrganizationResources(ctx context.Context, subject UserResource, permission organization.OrganizationPermission, opts *LookupResourcesOptions) ([]Resource, error)
+	LookupDocumentResources(ctx context.Context, subject Resource, permission document.DocumentPermission, opts *LookupResourcesOptions) ([]Resource, error)
+}
+
+type CheckPermissionOptions struct {
+	Context     *structpb.Struct
+	Consistency *pb.Consistency
+}
+
+type AddRelationshipOptions struct {
+	Caveat                  *pb.ContextualizedCaveat
+	OptionalSubjectRelation string
+}
+
+type LookupResourcesOptions struct {
+	OptionalSubjectRelation string
 }
