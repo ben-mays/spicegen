@@ -23,16 +23,6 @@ type SpiceDBClient interface {
 	pb.SchemaServiceClient
 }
 
-type SpiceGenClient interface {
-	{{ range $rsc := .Resources }}{{ $resource := $rsc.Name | ToCamel }}{{ if $rsc.Permissions }}{{ $subjectType := $rsc.PermissionSubjectType | ToCamel }} 
-	Check{{ $resource }}Permission(ctx context.Context, resource {{ $resource }}Resource, permission {{ $rsc.Name }}.{{ $resource }}Permission, subject {{ $subjectType }}, opts *CheckPermissionOptions) (bool, error){{ end }}{{ end}}
-	{{ range $rsc := .Resources }}{{ $resource := $rsc.Name | ToCamel }}{{ if $rsc.Relations }}{{ $subjectType := $rsc.RelationSubjectType | ToCamel }}
-	Add{{ $resource }}Relationship(ctx context.Context, resource {{ $resource }}Resource, relation {{ $rsc.Name }}.{{ $resource }}Relation, subject {{ $subjectType }}, opts *AddRelationshipOptions) error{{ end }}{{ end}}
-	{{ range $rsc := .Resources }}{{ $resource := $rsc.Name | ToCamel }} {{ if $rsc.Relations }} {{ $subjectType := $rsc.RelationSubjectType | ToCamel }}
-	Delete{{ $resource }}Relationship(ctx context.Context, resource {{ $resource }}Resource, relation {{ $rsc.Name }}.{{ $resource }}Relation, subject {{ $subjectType }}) error{{ end }}{{ end}}
-	{{ range $rsc := .Resources }}{{ $resource := $rsc.Name | ToCamel }}{{ if $rsc.Permissions }} {{ $subjectType := $rsc.PermissionSubjectType | ToCamel }}
-	Lookup{{ $resource }}Resources(ctx context.Context, subject {{ $subjectType }}, permission {{ $rsc.Name }}.{{ $resource }}Permission, opts *LookupResourcesOptions)  ([]Resource, error) {{ end }}{{ end}}
-}
 
 // Client is a SpiceDB client that can be used to check permissions on resources. It is safe for concurrent use. This client implements SpiceGenClient.
 type Client struct {
@@ -47,11 +37,6 @@ func NewClient(spicedbClient SpiceDBClient) SpiceGenClient {
 	return &Client{
 		spicedbClient: spicedbClient,
 	} 
-}
-
-type CheckPermissionOptions struct {
-	Context *structpb.Struct
-	Consistency *pb.Consistency
 }
 
 func (c *Client) getConsistency() *pb.Consistency {
@@ -99,11 +84,6 @@ func (c *Client) Check{{ $resource }}Permission(ctx context.Context, resource {{
 } {{ end }}
 {{ end}}
 
-type AddRelationshipOptions struct {
-	Caveat *pb.ContextualizedCaveat
-	OptionalRelation string
-}
-
 func (c *Client) AddRelationship(ctx context.Context, resource Resource, relation string, subject Resource, opts *AddRelationshipOptions) (error) {
 	c.Lock()
 	defer c.Unlock()
@@ -117,8 +97,8 @@ func (c *Client) AddRelationship(ctx context.Context, resource Resource, relatio
 			ObjectId:   subject.ID(),
 		},
 	}
-	if opts != nil && opts.OptionalRelation != "" {
-		subjectRef.OptionalRelation = opts.OptionalRelation
+	if opts != nil && opts.OptionalSubjectRelation != "" {
+		subjectRef.OptionalRelation = opts.OptionalSubjectRelation
 	}
 	resp, err := c.spicedbClient.WriteRelationships(ctx, &pb.WriteRelationshipsRequest{
 		Updates: []*pb.RelationshipUpdate{ {
@@ -215,10 +195,13 @@ func (c *Client) LookupResources(ctx context.Context, resourceType ResourceType,
 	return resources, nil
 }
 
+<<<<<<< HEAD
 type LookupResourcesOptions struct {
 	OptionalSubjectRelation string
 }
 
+=======
+>>>>>>> beb773b (Implement skip-client flag)
 {{ range $rsc := .Resources }}{{ $resource := $rsc.Name | ToCamel }}
 {{ if $rsc.Permissions }} 
 {{ $subjectType := $rsc.PermissionSubjectType | ToCamel }}

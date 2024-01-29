@@ -3,6 +3,12 @@ package {{.PackageName}}
 
 import (
     "errors"
+    "context"
+	pb "github.com/authzed/authzed-go/proto/authzed/api/v1"
+	structpb "google.golang.org/protobuf/types/known/structpb"
+	{{ $import := .ImportPath }}
+	{{ range $rsc := .Resources }}{{ if $rsc.Relations }}"{{ $import }}/permissions/{{ $rsc.Name }}"{{end}}
+	{{end}}
 )
 
 {{/* Create a ResourceType for each resource */}}
@@ -46,3 +52,27 @@ func New{{ $resource }}Resource(ID string) {{ $resource }}Resource {
 }
 {{end}}
 
+type SpiceGenClient interface {
+	{{ range $rsc := .Resources }}{{ $resource := $rsc.Name | ToCamel }}{{ if $rsc.Permissions }}{{ $subjectType := $rsc.PermissionSubjectType | ToCamel }} 
+	Check{{ $resource }}Permission(ctx context.Context, resource {{ $resource }}Resource, permission {{ $rsc.Name }}.{{ $resource }}Permission, subject {{ $subjectType }}, opts *CheckPermissionOptions) (bool, error){{ end }}{{ end}}
+	{{ range $rsc := .Resources }}{{ $resource := $rsc.Name | ToCamel }}{{ if $rsc.Relations }}{{ $subjectType := $rsc.RelationSubjectType | ToCamel }}
+	Add{{ $resource }}Relationship(ctx context.Context, resource {{ $resource }}Resource, relation {{ $rsc.Name }}.{{ $resource }}Relation, subject {{ $subjectType }}, opts *AddRelationshipOptions) error{{ end }}{{ end}}
+	{{ range $rsc := .Resources }}{{ $resource := $rsc.Name | ToCamel }} {{ if $rsc.Relations }} {{ $subjectType := $rsc.RelationSubjectType | ToCamel }}
+	Delete{{ $resource }}Relationship(ctx context.Context, resource {{ $resource }}Resource, relation {{ $rsc.Name }}.{{ $resource }}Relation, subject {{ $subjectType }}) error{{ end }}{{ end}}
+	{{ range $rsc := .Resources }}{{ $resource := $rsc.Name | ToCamel }}{{ if $rsc.Permissions }} {{ $subjectType := $rsc.PermissionSubjectType | ToCamel }}
+	Lookup{{ $resource }}Resources(ctx context.Context, subject {{ $subjectType }}, permission {{ $rsc.Name }}.{{ $resource }}Permission, opts *LookupResourcesOptions)  ([]Resource, error) {{ end }}{{ end}}
+}
+
+type CheckPermissionOptions struct {
+	Context *structpb.Struct
+	Consistency *pb.Consistency
+}
+
+type AddRelationshipOptions struct {
+	Caveat *pb.ContextualizedCaveat
+	OptionalSubjectRelation string
+}
+
+type LookupResourcesOptions struct {
+	OptionalSubjectRelation string
+}

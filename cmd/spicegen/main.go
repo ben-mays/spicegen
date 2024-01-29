@@ -45,6 +45,12 @@ func main() {
 		"Required. The fully qualified module path for importing the generated client. e.x. github.com/ben-mays/spicegen/example",
 	)
 
+	skipClientGeneration := fs.Bool(
+		"skip-client",
+		false,
+		"Optional. If present, will skip client generation and only generate types and permissions.",
+	)
+
 	fs.Parse(os.Args[1:])
 
 	wd, err := os.Getwd()
@@ -115,7 +121,6 @@ func main() {
 		return
 	}
 
-	fmt.Printf("writing client to %s with packageName %s\n", path.Join(*outputPath, outputFileName), *outputPackageName)
 	// create permission directories
 	err = os.Mkdir(permissionPath, 0755)
 	if err != nil && !errors.Is(err, os.ErrExist) {
@@ -142,8 +147,12 @@ func main() {
 			}
 		}
 	}
+	fmt.Printf("writing types to %s with packageName %s\n", path.Join(*outputPath, "types.go"), *outputPackageName)
 	internal.GenTypes(state, *outputPath, "types.go", *outputPackageName, *outputImportPath)
-	internal.GenClient(state, *outputPath, outputFileName, *outputPackageName, *outputImportPath)
+	if !*skipClientGeneration {
+		fmt.Printf("writing client to %s with packageName %s\n", path.Join(*outputPath, outputFileName), *outputPackageName)
+		internal.GenClient(state, *outputPath, outputFileName, *outputPackageName, *outputImportPath)
+	}
 	for _, rsc := range state.Resources {
 		internal.GenResource(rsc, permissionPath, rsc.Name)
 	}
