@@ -93,17 +93,17 @@ func TestSpiceDB(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	svc := authz.NewClient(authz.NewAuthzedClient(spicedb))
+	svc := authz.NewClient(spicedb)
 
 	// Add user:ben to organization:nike
-	err = svc.AddOrganizationRelation(
+	err = svc.AddOrganizationRelationship(
 		ctx, authz.NewOrganizationResource("nike"),
 		organization.AdministratorRelation,
 		authz.NewUserResource("ben"), nil)
 	assert.Nil(t, err)
 
 	// Add doc:readme to organization:nike
-	err = svc.AddDocumentRelation(ctx,
+	err = svc.AddDocumentRelationship(ctx,
 		authz.NewDocumentResource("readme"),
 		document.DocorgRelation,
 		authz.NewOrganizationResource("nike"), nil)
@@ -124,11 +124,19 @@ func TestSpiceDB(t *testing.T) {
 	assert.Nil(t, err)
 	assert.False(t, allowed)
 
-	// Can Alice view doc:readme? Expectation: no
-	allowed, err = svc.CheckDocumentPermission(ctx,
-		authz.NewDocumentResource("readme"),
+	// What docs can Ben read?
+	resources, err := svc.LookupDocumentResources(ctx,
+		authz.NewUserResource("ben"),
 		document.ViewPermission,
-		authz.NewUserResource("alice"), nil)
+		nil)
 	assert.Nil(t, err)
-	assert.True(t, allowed)
+	assert.Equal(t, []authz.Resource{authz.NewDocumentResource("readme")}, resources)
+
+	// What docs can Alice read?
+	resources, err = svc.LookupDocumentResources(ctx,
+		authz.NewUserResource("alice"),
+		document.ViewPermission,
+		nil)
+	assert.Nil(t, err)
+	assert.Equal(t, 0, len(resources))
 }
