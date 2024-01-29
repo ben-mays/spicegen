@@ -134,11 +134,15 @@ func (c *Client) Add{{ $resource }}Relationship(ctx context.Context, resource {{
 {{ end}}
 
 
-func (c *Client) DeleteRelationship(ctx context.Context, resource Resource, relation string, subject Resource) (error) {
+func (c *Client) DeleteRelationship(ctx context.Context, resource Resource, relation string, subject Resource, opts *DeleteRelationshipOptions) (error) {
 	c.Lock()
 	defer c.Unlock()
+	subjectFilter := &pb.SubjectFilter{SubjectType: string(subject.ResourceType()), OptionalSubjectId: subject.ID()}
+	if opts != nil && opts.OptionalSubjectRelation != "" {
+		subjectFilter.OptionalRelation = &pb.SubjectFilter_RelationFilter{Relation: opts.OptionalSubjectRelation}
+	}
 	resp, err := c.spicedbClient.DeleteRelationships(ctx, &pb.DeleteRelationshipsRequest{
-		RelationshipFilter: &pb.RelationshipFilter{ResourceType: string(resource.ResourceType()), OptionalResourceId: resource.ID(), OptionalRelation: relation, OptionalSubjectFilter: &pb.SubjectFilter{SubjectType: string(subject.ResourceType()), OptionalSubjectId: subject.ID()}},
+		RelationshipFilter: &pb.RelationshipFilter{ResourceType: string(resource.ResourceType()), OptionalResourceId: resource.ID(), OptionalRelation: relation, OptionalSubjectFilter: subjectFilter},
 	})
 	if err != nil {
 		return err
@@ -150,8 +154,8 @@ func (c *Client) DeleteRelationship(ctx context.Context, resource Resource, rela
 {{ range $rsc := .Resources }}{{ $resource := $rsc.Name | ToCamel }}
 {{ if $rsc.Relations }} 
 {{ $subjectType := $rsc.RelationSubjectType | ToCamel }}
-func (c *Client) Delete{{ $resource }}Relationship(ctx context.Context, resource {{ $resource }}Resource, relation {{ $rsc.Name }}.{{ $resource }}Relation, subject {{ $subjectType }}) (error) {
-	return c.DeleteRelationship(ctx, resource, string(relation), subject)
+func (c *Client) Delete{{ $resource }}Relationship(ctx context.Context, resource {{ $resource }}Resource, relation {{ $rsc.Name }}.{{ $resource }}Relation, subject {{ $subjectType }}, opts *DeleteRelationshipOptions) (error) {
+	return c.DeleteRelationship(ctx, resource, string(relation), subject, opts)
 } {{ end }}
 {{ end}}
 
