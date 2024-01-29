@@ -54,7 +54,7 @@ func New{{ $resource }}Resource(ID string) {{ $resource }}Resource {
 
 type SpiceGenClient interface {
 	{{ range $rsc := .Resources }}{{ $resource := $rsc.Name | ToCamel }}{{ if $rsc.Permissions }}{{ $subjectType := $rsc.PermissionSubjectType | ToCamel }} 
-	Check{{ $resource }}Permission(ctx context.Context, resource {{ $resource }}Resource, permission {{ $rsc.Name }}.{{ $resource }}Permission, subject {{ $subjectType }}, opts *CheckPermissionOptions) (bool, error){{ end }}{{ end}}
+	Check{{ $resource }}Permission(ctx context.Context, subject {{ $subjectType }}, permission {{ $rsc.Name }}.{{ $resource }}Permission, resource {{ $resource }}Resource, opts *CheckPermissionOptions) (bool, error){{ end }}{{ end}}
 	{{ range $rsc := .Resources }}{{ $resource := $rsc.Name | ToCamel }}{{ if $rsc.Relations }}{{ $subjectType := $rsc.RelationSubjectType | ToCamel }}
 	Add{{ $resource }}Relationship(ctx context.Context, resource {{ $resource }}Resource, relation {{ $rsc.Name }}.{{ $resource }}Relation, subject {{ $subjectType }}, opts *AddRelationshipOptions) error{{ end }}{{ end}}
 	{{ range $rsc := .Resources }}{{ $resource := $rsc.Name | ToCamel }} {{ if $rsc.Relations }} {{ $subjectType := $rsc.RelationSubjectType | ToCamel }}

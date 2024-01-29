@@ -75,7 +75,7 @@ func (c *Client) CheckPermission(ctx context.Context, subject Resource, permissi
 {{ range $rsc := .Resources }}{{ $resource := $rsc.Name | ToCamel }}
 {{ if $rsc.Permissions }}
 {{ $subjectType := $rsc.PermissionSubjectType | ToCamel }} 
-func (c *Client) Check{{ $resource }}Permission(ctx context.Context, resource {{ $resource }}Resource, permission {{ $rsc.Name }}.{{ $resource }}Permission, subject {{ $subjectType }}, opts *CheckPermissionOptions) (bool, error) {
+func (c *Client) Check{{ $resource }}Permission(ctx context.Context, subject {{ $subjectType }}, permission {{ $rsc.Name }}.{{ $resource }}Permission, resource {{ $resource }}Resource, opts *CheckPermissionOptions) (bool, error) {
 	if {{ $rsc.Name }}.ALLOWED_PERMISSION_SUBJECT_TYPES[permission][string(subject.ResourceType())] || {{ $rsc.Name }}.ALLOWED_PERMISSION_SUBJECT_TYPES[permission]["*"] {
 		return c.CheckPermission(ctx, subject, string(permission), resource, opts)
 	} else {
@@ -195,13 +195,6 @@ func (c *Client) LookupResources(ctx context.Context, resourceType ResourceType,
 	return resources, nil
 }
 
-<<<<<<< HEAD
-type LookupResourcesOptions struct {
-	OptionalSubjectRelation string
-}
-
-=======
->>>>>>> beb773b (Implement skip-client flag)
 {{ range $rsc := .Resources }}{{ $resource := $rsc.Name | ToCamel }}
 {{ if $rsc.Permissions }} 
 {{ $subjectType := $rsc.PermissionSubjectType | ToCamel }}
