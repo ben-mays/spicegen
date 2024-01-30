@@ -272,7 +272,6 @@ func handleRelation(resourceType string, rel *corev1.Relation) Relation {
 				refs = append(refs, r)
 			}
 		}
-		fmt.Printf("Resolved relation refs for %s: %v\n", relation.Name, refs)
 		relation.RelationRefs = refs
 	}
 	return relation
