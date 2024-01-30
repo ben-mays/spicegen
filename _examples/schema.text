@@ -1,11 +1,14 @@
 /** user represents a user */
 definition user {}
 
+definition team {
+  relation member: user | team#member
+}
+
 /** organization represents an organization that contains documents */
 definition organization {
   /** administrator indicates that the user is an admin of the org */
-  /** //spicegen:subject_type=user */
-  relation administrator: user
+  relation administrator: user | team
 
   /** view_all_documents indicates whether a user can view all documents in the org */
   /** //spicegen:subject_type=user */

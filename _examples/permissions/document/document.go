@@ -9,19 +9,19 @@ const (
 
 var ALLOWED_PERMISSION_SUBJECT_TYPES = map[DocumentPermission]map[string]bool{
 	ViewPermission: {
-		"*": true,
+		"document": true, "user": true, "docorg": true,
 	},
 }
 
-var ALLOWED_RELATION_SUBJECT_TYPES = map[DocumentRelation]map[string]bool{
+var ALLOWED_RELATION_SUBJECT_TYPES = map[DocumentRelation]map[string]string{
 	DocorgRelation: {
-		"organization": true,
+		"organization": "...",
 	},
 	ReaderRelation: {
-		"user": true,
+		"user": "...",
 	},
 	WriterRelation: {
-		"user": true,
+		"user": "...",
 	},
 }
 

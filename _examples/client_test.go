@@ -9,14 +9,15 @@ import (
 	authz "github.com/ben-mays/spicegen/examples"
 	"github.com/ben-mays/spicegen/examples/permissions/document"
 	"github.com/ben-mays/spicegen/examples/permissions/organization"
+	"github.com/ben-mays/spicegen/examples/permissions/team"
 	"github.com/rs/zerolog"
+	"github.com/stretchr/testify/assert"
 
 	pb "github.com/authzed/authzed-go/proto/authzed/api/v1"
 	"github.com/authzed/authzed-go/v1"
 	"github.com/authzed/spicedb/pkg/cmd/datastore"
 	"github.com/authzed/spicedb/pkg/cmd/server"
 	"github.com/authzed/spicedb/pkg/cmd/util"
-	"github.com/stretchr/testify/assert"
 )
 
 //go:embed schema.text
@@ -139,4 +140,11 @@ func TestSpiceDB(t *testing.T) {
 		nil)
 	assert.Nil(t, err)
 	assert.Equal(t, 0, len(resources))
+
+	err = svc.AddTeamRelationship(ctx, authz.NewTeamResource("nike"), team.MemberRelation, authz.NewTeamResource("ben"), nil)
+	assert.NotNil(t, err)
+	assert.Equal(t, "relation `member` requires an optional subject relation `member` for subject type `team`", err.Error())
+
+	err = svc.AddTeamRelationship(ctx, authz.NewTeamResource("nike"), team.MemberRelation, authz.NewTeamResource("ben"), &authz.AddRelationshipOptions{OptionalSubjectRelation: "member"})
+	assert.Nil(t, err)
 }

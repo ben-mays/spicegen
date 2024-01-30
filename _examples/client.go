@@ -3,7 +3,6 @@ package authz
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"io"
 	"sync"
@@ -13,6 +12,7 @@ import (
 
 	"github.com/ben-mays/spicegen/examples/permissions/document"
 	"github.com/ben-mays/spicegen/examples/permissions/organization"
+	"github.com/ben-mays/spicegen/examples/permissions/team"
 )
 
 // SpiceDBClient is the interface that the spicegen generated client wraps.
@@ -73,7 +73,7 @@ func (c *Client) CheckOrganizationPermission(ctx context.Context, subject UserRe
 	if organization.ALLOWED_PERMISSION_SUBJECT_TYPES[permission][string(subject.ResourceType())] || organization.ALLOWED_PERMISSION_SUBJECT_TYPES[permission]["*"] {
 		return c.CheckPermission(ctx, subject, string(permission), resource, opts)
 	} else {
-		return false, errors.New(fmt.Sprintf("subject type not allowed for permission %s", string(permission)))
+		return false, fmt.Errorf("subject type not allowed for permission %s", string(permission))
 	}
 }
 
@@ -81,7 +81,7 @@ func (c *Client) CheckDocumentPermission(ctx context.Context, subject Resource, 
 	if document.ALLOWED_PERMISSION_SUBJECT_TYPES[permission][string(subject.ResourceType())] || document.ALLOWED_PERMISSION_SUBJECT_TYPES[permission]["*"] {
 		return c.CheckPermission(ctx, subject, string(permission), resource, opts)
 	} else {
-		return false, errors.New(fmt.Sprintf("subject type not allowed for permission %s", string(permission)))
+		return false, fmt.Errorf("subject type not allowed for permission %s", string(permission))
 	}
 }
 
@@ -122,27 +122,54 @@ func (c *Client) AddRelationship(ctx context.Context, resource Resource, relatio
 	return nil
 }
 
-func (c *Client) AddOrganizationRelationship(ctx context.Context, resource OrganizationResource, relation organization.OrganizationRelation, subject UserResource, opts *AddRelationshipOptions) error {
-	if organization.ALLOWED_RELATION_SUBJECT_TYPES[relation][string(subject.ResourceType())] || organization.ALLOWED_RELATION_SUBJECT_TYPES[relation]["*"] {
+func (c *Client) AddTeamRelationship(ctx context.Context, resource TeamResource, relation team.TeamRelation, subject Resource, opts *AddRelationshipOptions) error {
+	optionalRelation, allowed := team.ALLOWED_RELATION_SUBJECT_TYPES[relation][string(subject.ResourceType())]
+	_, hasWildcard := team.ALLOWED_RELATION_SUBJECT_TYPES[relation]["*"]
+	if allowed && optionalRelation != "..." && (opts == nil || opts.OptionalSubjectRelation != optionalRelation) {
+		return fmt.Errorf("relation `%s` requires an optional subject relation `%s` for subject type `%s`", string(relation), optionalRelation, subject.ResourceType())
+	}
+	if allowed || hasWildcard {
 		return c.AddRelationship(ctx, resource, string(relation), subject, opts)
 	} else {
-		return errors.New(fmt.Sprintf("subject type not allowed for relation %s", string(relation)))
+		return fmt.Errorf("subject type not allowed for relation %s", string(relation))
+	}
+}
+
+func (c *Client) AddOrganizationRelationship(ctx context.Context, resource OrganizationResource, relation organization.OrganizationRelation, subject Resource, opts *AddRelationshipOptions) error {
+	optionalRelation, allowed := organization.ALLOWED_RELATION_SUBJECT_TYPES[relation][string(subject.ResourceType())]
+	_, hasWildcard := organization.ALLOWED_RELATION_SUBJECT_TYPES[relation]["*"]
+	if allowed && optionalRelation != "..." && (opts == nil || opts.OptionalSubjectRelation != optionalRelation) {
+		return fmt.Errorf("relation `%s` requires an optional subject relation `%s` for subject type `%s`", string(relation), optionalRelation, subject.ResourceType())
+	}
+	if allowed || hasWildcard {
+		return c.AddRelationship(ctx, resource, string(relation), subject, opts)
+	} else {
+		return fmt.Errorf("subject type not allowed for relation %s", string(relation))
 	}
 }
 
 func (c *Client) AddDocumentRelationship(ctx context.Context, resource DocumentResource, relation document.DocumentRelation, subject Resource, opts *AddRelationshipOptions) error {
-	if document.ALLOWED_RELATION_SUBJECT_TYPES[relation][string(subject.ResourceType())] || document.ALLOWED_RELATION_SUBJECT_TYPES[relation]["*"] {
+	optionalRelation, allowed := document.ALLOWED_RELATION_SUBJECT_TYPES[relation][string(subject.ResourceType())]
+	_, hasWildcard := document.ALLOWED_RELATION_SUBJECT_TYPES[relation]["*"]
+	if allowed && optionalRelation != "..." && (opts == nil || opts.OptionalSubjectRelation != optionalRelation) {
+		return fmt.Errorf("relation `%s` requires an optional subject relation `%s` for subject type `%s`", string(relation), optionalRelation, subject.ResourceType())
+	}
+	if allowed || hasWildcard {
 		return c.AddRelationship(ctx, resource, string(relation), subject, opts)
 	} else {
-		return errors.New(fmt.Sprintf("subject type not allowed for relation %s", string(relation)))
+		return fmt.Errorf("subject type not allowed for relation %s", string(relation))
 	}
 }
 
-func (c *Client) DeleteRelationship(ctx context.Context, resource Resource, relation string, subject Resource) error {
+func (c *Client) DeleteRelationship(ctx context.Context, resource Resource, relation string, subject Resource, opts *DeleteRelationshipOptions) error {
 	c.Lock()
 	defer c.Unlock()
+	subjectFilter := &pb.SubjectFilter{SubjectType: string(subject.ResourceType()), OptionalSubjectId: subject.ID()}
+	if opts != nil && opts.OptionalSubjectRelation != "" {
+		subjectFilter.OptionalRelation = &pb.SubjectFilter_RelationFilter{Relation: opts.OptionalSubjectRelation}
+	}
 	resp, err := c.spicedbClient.DeleteRelationships(ctx, &pb.DeleteRelationshipsRequest{
-		RelationshipFilter: &pb.RelationshipFilter{ResourceType: string(resource.ResourceType()), OptionalResourceId: resource.ID(), OptionalRelation: relation, OptionalSubjectFilter: &pb.SubjectFilter{SubjectType: string(subject.ResourceType()), OptionalSubjectId: subject.ID()}},
+		RelationshipFilter: &pb.RelationshipFilter{ResourceType: string(resource.ResourceType()), OptionalResourceId: resource.ID(), OptionalRelation: relation, OptionalSubjectFilter: subjectFilter},
 	})
 	if err != nil {
 		return err
@@ -151,12 +178,16 @@ func (c *Client) DeleteRelationship(ctx context.Context, resource Resource, rela
 	return nil
 }
 
-func (c *Client) DeleteOrganizationRelationship(ctx context.Context, resource OrganizationResource, relation organization.OrganizationRelation, subject UserResource) error {
-	return c.DeleteRelationship(ctx, resource, string(relation), subject)
+func (c *Client) DeleteTeamRelationship(ctx context.Context, resource TeamResource, relation team.TeamRelation, subject Resource, opts *DeleteRelationshipOptions) error {
+	return c.DeleteRelationship(ctx, resource, string(relation), subject, opts)
 }
 
-func (c *Client) DeleteDocumentRelationship(ctx context.Context, resource DocumentResource, relation document.DocumentRelation, subject Resource) error {
-	return c.DeleteRelationship(ctx, resource, string(relation), subject)
+func (c *Client) DeleteOrganizationRelationship(ctx context.Context, resource OrganizationResource, relation organization.OrganizationRelation, subject Resource, opts *DeleteRelationshipOptions) error {
+	return c.DeleteRelationship(ctx, resource, string(relation), subject, opts)
+}
+
+func (c *Client) DeleteDocumentRelationship(ctx context.Context, resource DocumentResource, relation document.DocumentRelation, subject Resource, opts *DeleteRelationshipOptions) error {
+	return c.DeleteRelationship(ctx, resource, string(relation), subject, opts)
 }
 
 func (c *Client) LookupResources(ctx context.Context, resourceType ResourceType, subject Resource, permission string, opts *LookupResourcesOptions) ([]Resource, error) {

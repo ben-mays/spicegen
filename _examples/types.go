@@ -9,12 +9,14 @@ import (
 
 	"github.com/ben-mays/spicegen/examples/permissions/document"
 	"github.com/ben-mays/spicegen/examples/permissions/organization"
+	"github.com/ben-mays/spicegen/examples/permissions/team"
 )
 
 type ResourceType string
 
 const (
 	User         ResourceType = "user"
+	Team         ResourceType = "team"
 	Organization ResourceType = "organization"
 	Document     ResourceType = "document"
 )
@@ -29,6 +31,9 @@ func NewResource(resourceType ResourceType, ID string) (Resource, error) {
 
 	case User:
 		return UserResource{rid: ID}, nil
+
+	case Team:
+		return TeamResource{rid: ID}, nil
 
 	case Organization:
 		return OrganizationResource{rid: ID}, nil
@@ -54,6 +59,22 @@ func (r UserResource) ResourceType() ResourceType {
 
 func NewUserResource(ID string) UserResource {
 	return UserResource{rid: ID}
+}
+
+type TeamResource struct {
+	rid string
+}
+
+func (r TeamResource) ID() string {
+	return r.rid
+}
+
+func (r TeamResource) ResourceType() ResourceType {
+	return Team
+}
+
+func NewTeamResource(ID string) TeamResource {
+	return TeamResource{rid: ID}
 }
 
 type OrganizationResource struct {
@@ -92,11 +113,13 @@ type SpiceGenClient interface {
 	CheckOrganizationPermission(ctx context.Context, subject UserResource, permission organization.OrganizationPermission, resource OrganizationResource, opts *CheckPermissionOptions) (bool, error)
 	CheckDocumentPermission(ctx context.Context, subject Resource, permission document.DocumentPermission, resource DocumentResource, opts *CheckPermissionOptions) (bool, error)
 
-	AddOrganizationRelationship(ctx context.Context, resource OrganizationResource, relation organization.OrganizationRelation, subject UserResource, opts *AddRelationshipOptions) error
+	AddTeamRelationship(ctx context.Context, resource TeamResource, relation team.TeamRelation, subject Resource, opts *AddRelationshipOptions) error
+	AddOrganizationRelationship(ctx context.Context, resource OrganizationResource, relation organization.OrganizationRelation, subject Resource, opts *AddRelationshipOptions) error
 	AddDocumentRelationship(ctx context.Context, resource DocumentResource, relation document.DocumentRelation, subject Resource, opts *AddRelationshipOptions) error
 
-	DeleteOrganizationRelationship(ctx context.Context, resource OrganizationResource, relation organization.OrganizationRelation, subject UserResource) error
-	DeleteDocumentRelationship(ctx context.Context, resource DocumentResource, relation document.DocumentRelation, subject Resource) error
+	DeleteTeamRelationship(ctx context.Context, resource TeamResource, relation team.TeamRelation, subject Resource, opts *DeleteRelationshipOptions) error
+	DeleteOrganizationRelationship(ctx context.Context, resource OrganizationResource, relation organization.OrganizationRelation, subject Resource, opts *DeleteRelationshipOptions) error
+	DeleteDocumentRelationship(ctx context.Context, resource DocumentResource, relation document.DocumentRelation, subject Resource, opts *DeleteRelationshipOptions) error
 
 	LookupOrganizationResources(ctx context.Context, subject UserResource, permission organization.OrganizationPermission, opts *LookupResourcesOptions) ([]Resource, error)
 	LookupDocumentResources(ctx context.Context, subject Resource, permission document.DocumentPermission, opts *LookupResourcesOptions) ([]Resource, error)
@@ -109,6 +132,10 @@ type CheckPermissionOptions struct {
 
 type AddRelationshipOptions struct {
 	Caveat                  *pb.ContextualizedCaveat
+	OptionalSubjectRelation string
+}
+
+type DeleteRelationshipOptions struct {
 	OptionalSubjectRelation string
 }
 

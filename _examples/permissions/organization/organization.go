@@ -13,9 +13,10 @@ var ALLOWED_PERMISSION_SUBJECT_TYPES = map[OrganizationPermission]map[string]boo
 	},
 }
 
-var ALLOWED_RELATION_SUBJECT_TYPES = map[OrganizationRelation]map[string]bool{
+var ALLOWED_RELATION_SUBJECT_TYPES = map[OrganizationRelation]map[string]string{
 	AdministratorRelation: {
-		"user": true,
+		"user": "...",
+		"team": "...",
 	},
 }
 
