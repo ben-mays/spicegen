@@ -16,19 +16,19 @@ import (
 func main() {
 	fs := flag.NewFlagSet("spicegen", flag.ContinueOnError)
 	schemaPath := fs.String(
-		"s",
+		"schema-file",
 		"schema.text",
 		"Optional. Path to schema file for generation. If none given, the tool will look for schema.text in the current directory.",
 	)
 
 	outputPath := fs.String(
-		"o",
+		"output-path",
 		"",
 		"Optional. The file or directory to which the generated client will be written. If a directory is given, the output filename will be client.go. If no output is given, current directory is used.",
 	)
 
 	outputPackageName := fs.String(
-		"op",
+		"output-package",
 		"",
 		"Optional. The package name of the generated client. This will default to the output directory name if not given.",
 	)
