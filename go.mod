@@ -1,6 +1,6 @@
 module github.com/ben-mays/spicegen
 
-go 1.21.4
+go 1.21
 
 require (
 	github.com/authzed/authzed-go v0.10.1 // indirect
