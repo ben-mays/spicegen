@@ -31,8 +31,9 @@ type Relation struct {
 	OutputName string
 	Kind       string
 	// ResourceTypes to enforce
-	AllowedSubjectTypes         []string
-	OverrideAllowedSubjectTypes []string
+	AllowedSubjectTypes           []string
+	SubjectTypesOptionalRelations map[string]string
+	OverrideAllowedSubjectTypes   []string
 	// Used for resolving allowed subject types if not given in a metatag
 	RelationRefs []RelationRef
 }
@@ -85,21 +86,39 @@ func BuildSchema(compiledSchema *compiler.CompiledSchema) Schema {
 		all := maps.Values(resource.Relations)
 		all = append(all, maps.Values(resource.Permissions)...)
 		for _, relation := range all {
+			relation.SubjectTypesOptionalRelations = map[string]string{}
+			relation.AllowedSubjectTypes = []string{}
 			if len(relation.OverrideAllowedSubjectTypes) == 0 {
 				allowed := map[string]bool{}
-				relation.AllowedSubjectTypes = []string{}
+				// This logic is super wonky -- it's attempting to resolve the relation refs into concrete subject types.
+				// The gist: we build up allowed[] to point to all the allowed subject types for this relation. We also
+				// track any optional relations that are allowed on this relation. If there are no allowed subject types
+				// inferred we allow wildcard. Note: we could merge the maps of allowed subject types and optional relations
+				// but I bolted this on and didn't want to refactor.
 				for _, ref := range relation.RelationRefs {
+					allowed[ref.ResourceType] = true
 					if ref.Relation == "..." {
-						allowed[ref.ResourceType] = true
+						// If the ref is concrete, we still append an optional relation equal to ... to make generation easier :shrug:
+						relation.SubjectTypesOptionalRelations[ref.ResourceType] = ref.Relation
 					} else {
-						// TODO: Resolve indirect refs to concrete types
+						// Does this relation exist on _this_ resource type? If so, resolve it to the allowed subject types.
+						// If it's on a different resource type, we keep the relation as-is.
+						if indirectRef, ok := state[ref.ResourceType].Relations[ref.Relation]; ok && len(indirectRef.AllowedSubjectTypes) != 0 {
+							for _, allowedSubjectType := range indirectRef.AllowedSubjectTypes {
+								allowed[allowedSubjectType] = true
+							}
+						} else {
+							relation.SubjectTypesOptionalRelations[ref.ResourceType] = ref.Relation
+						}
 					}
 				}
-				for k := range allowed {
-					relation.AllowedSubjectTypes = append(relation.AllowedSubjectTypes, k)
-				}
+				// If there are no allowed subject types, we default to wildcard
 				if len(allowed) == 0 {
 					relation.AllowedSubjectTypes = []string{"*"}
+				} else {
+					for k := range allowed {
+						relation.AllowedSubjectTypes = append(relation.AllowedSubjectTypes, k)
+					}
 				}
 			} else {
 				relation.AllowedSubjectTypes = relation.OverrideAllowedSubjectTypes
@@ -127,9 +146,11 @@ func BuildSchema(compiledSchema *compiler.CompiledSchema) Schema {
 				allowedRelations = set(allowedRelations...)
 			}
 		}
+		// If there is only one allowed subject type and it's not wildcard, set it as the permission subject type for this relation
 		if len(allowedPerms) == 1 && allowedPerms[0] != "*" {
 			resource.PermissionSubjectType = fmt.Sprintf("%s_resource", allowedPerms[0])
 		}
+		// Likewise for relation subject types
 		if len(allowedRelations) == 1 && allowedRelations[0] != "*" {
 			resource.RelationSubjectType = fmt.Sprintf("%s_resource", allowedRelations[0])
 		}
@@ -159,6 +180,7 @@ func parseMetatags(comments []*anypb.Any) metatag {
 				tagval = split[1]
 			}
 			switch tag {
+			// Override subject type inference. This type does not have to exist in the schema!
 			case "subject_type":
 				m.allowedSubjectTypes = append(m.allowedSubjectTypes, tagval)
 			// Rename public type but use value for spicedb
@@ -227,6 +249,10 @@ func handleRelation(resourceType string, rel *corev1.Relation) Relation {
 	if metatag.allowedSubjectTypes != nil {
 		relation.OverrideAllowedSubjectTypes = metatag.allowedSubjectTypes
 	} else {
+		// Resolve the relation refs. For example, given a relation like: owner: user | group, we want to resolve the user and group refs
+		// to get a concrete type so we can generate a client that is typesafe. Ideally we'd produce something like `User` or `UserOrGroup`
+		// but Go generics don't support composing union types without a cardinality explosion. If there are more than one assignable concrete
+		// type (i.e. a ObjectDefinition, referred to as Resources in this code) then we just use the wildcard type and enforce at runtime.
 		refs := make([]RelationRef, 0)
 		rewrite := rel.GetUsersetRewrite()
 		if rewrite != nil {
@@ -246,6 +272,7 @@ func handleRelation(resourceType string, rel *corev1.Relation) Relation {
 				refs = append(refs, r)
 			}
 		}
+		fmt.Printf("Resolved relation refs for %s: %v\n", relation.Name, refs)
 		relation.RelationRefs = refs
 	}
 	return relation
