@@ -121,13 +121,14 @@ type SpiceGenClient interface {
 	DeleteOrganizationRelationship(ctx context.Context, resource OrganizationResource, relation organization.OrganizationRelation, subject Resource, opts *DeleteRelationshipOptions) error
 	DeleteDocumentRelationship(ctx context.Context, resource DocumentResource, relation document.DocumentRelation, subject Resource, opts *DeleteRelationshipOptions) error
 
-	LookupOrganizationResources(ctx context.Context, subject UserResource, permission organization.OrganizationPermission, opts *LookupResourcesOptions) ([]Resource, error)
-	LookupDocumentResources(ctx context.Context, subject Resource, permission document.DocumentPermission, opts *LookupResourcesOptions) ([]Resource, error)
+	LookupOrganizationResources(ctx context.Context, subject UserResource, permission organization.OrganizationPermission, opts *LookupResourcesOptions) ([]Resource, string, error)
+	LookupOrganizationSubjects(ctx context.Context, resourceID string, subjectType ResourceType, permission organization.OrganizationPermission, opts *LookupSubjectsOptions) ([]Resource, string, error)
+	LookupDocumentResources(ctx context.Context, subject Resource, permission document.DocumentPermission, opts *LookupResourcesOptions) ([]Resource, string, error)
+	LookupDocumentSubjects(ctx context.Context, resourceID string, subjectType ResourceType, permission document.DocumentPermission, opts *LookupSubjectsOptions) ([]Resource, string, error)
 }
 
 type CheckPermissionOptions struct {
-	Context     *structpb.Struct
-	Consistency *pb.Consistency
+	Context *structpb.Struct
 }
 
 type AddRelationshipOptions struct {
@@ -136,9 +137,21 @@ type AddRelationshipOptions struct {
 }
 
 type DeleteRelationshipOptions struct {
+	Pagination              Pagination
 	OptionalSubjectRelation string
 }
 
 type LookupResourcesOptions struct {
+	Pagination              Pagination
 	OptionalSubjectRelation string
+}
+
+type LookupSubjectsOptions struct {
+	Pagination              Pagination
+	OptionalSubjectRelation string
+}
+
+type Pagination struct {
+	Limit int
+	Token string
 }
