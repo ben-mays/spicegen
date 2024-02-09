@@ -117,7 +117,7 @@ The above tag will result in the generator using `["user"]` as the allowed subje
 ## Example
 
 ```
-go run cmd/spicegen/main.go -import-path github.com/ben-mays/spicegen/_examples -s _examples/schema.text -o _examples -op authz 
+go run cmd/spicegen/main.go -import-path github.com/ben-mays/spicegen/_examples -schema-file _examples/schema.text -output-path _examples -output-package authz
 ```
 
 ## TODO
