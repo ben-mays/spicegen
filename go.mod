@@ -4,7 +4,7 @@ go 1.21
 
 require (
 	github.com/authzed/authzed-go v0.10.1 // indirect
-	github.com/stretchr/testify v1.8.4 // indirect
+	github.com/stretchr/testify v1.8.4
 	golang.org/x/exp v0.0.0-20231006140011-7918f672742d
 	google.golang.org/grpc v1.59.0 // indirect
 	google.golang.org/protobuf v1.31.0

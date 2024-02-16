@@ -126,7 +126,7 @@ func TestSpiceDB(t *testing.T) {
 	assert.False(t, allowed)
 
 	// What docs can Ben read?
-	resources, err := svc.LookupDocumentResources(ctx,
+	resources, _, err := svc.LookupDocumentResources(ctx,
 		authz.NewUserResource("ben"),
 		document.ViewPermission,
 		nil)
@@ -134,7 +134,7 @@ func TestSpiceDB(t *testing.T) {
 	assert.Equal(t, []authz.Resource{authz.NewDocumentResource("readme")}, resources)
 
 	// What docs can Alice read?
-	resources, err = svc.LookupDocumentResources(ctx,
+	resources, _, err = svc.LookupDocumentResources(ctx,
 		authz.NewUserResource("alice"),
 		document.ViewPermission,
 		nil)

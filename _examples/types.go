@@ -15,10 +15,10 @@ import (
 type ResourceType string
 
 const (
-	User         ResourceType = "user"
 	Team         ResourceType = "team"
 	Organization ResourceType = "organization"
 	Document     ResourceType = "document"
+	User         ResourceType = "user"
 )
 
 type Resource interface {
@@ -29,9 +29,6 @@ type Resource interface {
 func NewResource(resourceType ResourceType, ID string) (Resource, error) {
 	switch resourceType {
 
-	case User:
-		return UserResource{rid: ID}, nil
-
 	case Team:
 		return TeamResource{rid: ID}, nil
 
@@ -41,24 +38,11 @@ func NewResource(resourceType ResourceType, ID string) (Resource, error) {
 	case Document:
 		return DocumentResource{rid: ID}, nil
 
+	case User:
+		return UserResource{rid: ID}, nil
+
 	}
 	return nil, errors.New("resourceType given is not valid")
-}
-
-type UserResource struct {
-	rid string
-}
-
-func (r UserResource) ID() string {
-	return r.rid
-}
-
-func (r UserResource) ResourceType() ResourceType {
-	return User
-}
-
-func NewUserResource(ID string) UserResource {
-	return UserResource{rid: ID}
 }
 
 type TeamResource struct {
@@ -107,6 +91,22 @@ func (r DocumentResource) ResourceType() ResourceType {
 
 func NewDocumentResource(ID string) DocumentResource {
 	return DocumentResource{rid: ID}
+}
+
+type UserResource struct {
+	rid string
+}
+
+func (r UserResource) ID() string {
+	return r.rid
+}
+
+func (r UserResource) ResourceType() ResourceType {
+	return User
+}
+
+func NewUserResource(ID string) UserResource {
+	return UserResource{rid: ID}
 }
 
 type SpiceGenClient interface {
