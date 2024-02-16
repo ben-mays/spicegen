@@ -3,8 +3,8 @@ package team
 
 var ALLOWED_RELATION_SUBJECT_TYPES = map[TeamRelation]map[string]string{
 	MemberRelation: {
-		"user": "...",
 		"team": "member",
+		"user": "...",
 	},
 }
 

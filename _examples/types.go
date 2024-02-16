@@ -7,9 +7,9 @@ import (
 	pb "github.com/authzed/authzed-go/proto/authzed/api/v1"
 	structpb "google.golang.org/protobuf/types/known/structpb"
 
-	"github.com/ben-mays/spicegen/examples/permissions/document"
-	"github.com/ben-mays/spicegen/examples/permissions/organization"
-	"github.com/ben-mays/spicegen/examples/permissions/team"
+	"github.com/ben-mays/spicegen/_examples/permissions/document"
+	"github.com/ben-mays/spicegen/_examples/permissions/organization"
+	"github.com/ben-mays/spicegen/_examples/permissions/team"
 )
 
 type ResourceType string
@@ -111,7 +111,7 @@ func NewDocumentResource(ID string) DocumentResource {
 
 type SpiceGenClient interface {
 	CheckOrganizationPermission(ctx context.Context, subject UserResource, permission organization.OrganizationPermission, resource OrganizationResource, opts *CheckPermissionOptions) (bool, error)
-	CheckDocumentPermission(ctx context.Context, subject Resource, permission document.DocumentPermission, resource DocumentResource, opts *CheckPermissionOptions) (bool, error)
+	CheckDocumentPermission(ctx context.Context, subject UserResource, permission document.DocumentPermission, resource DocumentResource, opts *CheckPermissionOptions) (bool, error)
 
 	AddTeamRelationship(ctx context.Context, resource TeamResource, relation team.TeamRelation, subject Resource, opts *AddRelationshipOptions) error
 	AddOrganizationRelationship(ctx context.Context, resource OrganizationResource, relation organization.OrganizationRelation, subject Resource, opts *AddRelationshipOptions) error
@@ -123,7 +123,7 @@ type SpiceGenClient interface {
 
 	LookupOrganizationResources(ctx context.Context, subject UserResource, permission organization.OrganizationPermission, opts *LookupResourcesOptions) ([]Resource, string, error)
 	LookupOrganizationSubjects(ctx context.Context, resourceID string, subjectType ResourceType, permission organization.OrganizationPermission, opts *LookupSubjectsOptions) ([]Resource, string, error)
-	LookupDocumentResources(ctx context.Context, subject Resource, permission document.DocumentPermission, opts *LookupResourcesOptions) ([]Resource, string, error)
+	LookupDocumentResources(ctx context.Context, subject UserResource, permission document.DocumentPermission, opts *LookupResourcesOptions) ([]Resource, string, error)
 	LookupDocumentSubjects(ctx context.Context, resourceID string, subjectType ResourceType, permission document.DocumentPermission, opts *LookupSubjectsOptions) ([]Resource, string, error)
 }
 

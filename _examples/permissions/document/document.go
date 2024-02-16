@@ -9,7 +9,7 @@ const (
 
 var ALLOWED_PERMISSION_SUBJECT_TYPES = map[DocumentPermission]map[string]bool{
 	ViewPermission: {
-		"document": true, "user": true, "docorg": true,
+		"user": true,
 	},
 }
 

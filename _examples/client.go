@@ -10,10 +10,9 @@ import (
 	pb "github.com/authzed/authzed-go/proto/authzed/api/v1"
 	structpb "google.golang.org/protobuf/types/known/structpb"
 
-	"github.com/ben-mays/spicegen/examples/permissions/document"
-	"github.com/ben-mays/spicegen/examples/permissions/organization"
-
-	"github.com/ben-mays/spicegen/examples/permissions/team"
+	"github.com/ben-mays/spicegen/_examples/permissions/document"
+	"github.com/ben-mays/spicegen/_examples/permissions/organization"
+	"github.com/ben-mays/spicegen/_examples/permissions/team"
 )
 
 // SpiceDBClient is the interface that the spicegen generated client wraps.
@@ -75,7 +74,7 @@ func (c *Client) CheckOrganizationPermission(ctx context.Context, subject UserRe
 	}
 }
 
-func (c *Client) CheckDocumentPermission(ctx context.Context, subject Resource, permission document.DocumentPermission, resource DocumentResource, opts *CheckPermissionOptions) (bool, error) {
+func (c *Client) CheckDocumentPermission(ctx context.Context, subject UserResource, permission document.DocumentPermission, resource DocumentResource, opts *CheckPermissionOptions) (bool, error) {
 	if document.ALLOWED_PERMISSION_SUBJECT_TYPES[permission][string(subject.ResourceType())] || document.ALLOWED_PERMISSION_SUBJECT_TYPES[permission]["*"] {
 		return c.CheckPermission(ctx, subject, string(permission), resource, opts)
 	} else {
@@ -120,6 +119,19 @@ func (c *Client) AddRelationship(ctx context.Context, resource Resource, relatio
 	return nil
 }
 
+func (c *Client) AddTeamRelationship(ctx context.Context, resource TeamResource, relation team.TeamRelation, subject Resource, opts *AddRelationshipOptions) error {
+	optionalRelation, allowed := team.ALLOWED_RELATION_SUBJECT_TYPES[relation][string(subject.ResourceType())]
+	_, hasWildcard := team.ALLOWED_RELATION_SUBJECT_TYPES[relation]["*"]
+	if allowed && optionalRelation != "..." && (opts == nil || opts.OptionalSubjectRelation != optionalRelation) {
+		return fmt.Errorf("relation `%s` requires an optional subject relation `%s` for subject type `%s`", string(relation), optionalRelation, subject.ResourceType())
+	}
+	if allowed || hasWildcard {
+		return c.AddRelationship(ctx, resource, string(relation), subject, opts)
+	} else {
+		return fmt.Errorf("subject type not allowed for relation %s", string(relation))
+	}
+}
+
 func (c *Client) AddOrganizationRelationship(ctx context.Context, resource OrganizationResource, relation organization.OrganizationRelation, subject Resource, opts *AddRelationshipOptions) error {
 	optionalRelation, allowed := organization.ALLOWED_RELATION_SUBJECT_TYPES[relation][string(subject.ResourceType())]
 	_, hasWildcard := organization.ALLOWED_RELATION_SUBJECT_TYPES[relation]["*"]
@@ -136,19 +148,6 @@ func (c *Client) AddOrganizationRelationship(ctx context.Context, resource Organ
 func (c *Client) AddDocumentRelationship(ctx context.Context, resource DocumentResource, relation document.DocumentRelation, subject Resource, opts *AddRelationshipOptions) error {
 	optionalRelation, allowed := document.ALLOWED_RELATION_SUBJECT_TYPES[relation][string(subject.ResourceType())]
 	_, hasWildcard := document.ALLOWED_RELATION_SUBJECT_TYPES[relation]["*"]
-	if allowed && optionalRelation != "..." && (opts == nil || opts.OptionalSubjectRelation != optionalRelation) {
-		return fmt.Errorf("relation `%s` requires an optional subject relation `%s` for subject type `%s`", string(relation), optionalRelation, subject.ResourceType())
-	}
-	if allowed || hasWildcard {
-		return c.AddRelationship(ctx, resource, string(relation), subject, opts)
-	} else {
-		return fmt.Errorf("subject type not allowed for relation %s", string(relation))
-	}
-}
-
-func (c *Client) AddTeamRelationship(ctx context.Context, resource TeamResource, relation team.TeamRelation, subject Resource, opts *AddRelationshipOptions) error {
-	optionalRelation, allowed := team.ALLOWED_RELATION_SUBJECT_TYPES[relation][string(subject.ResourceType())]
-	_, hasWildcard := team.ALLOWED_RELATION_SUBJECT_TYPES[relation]["*"]
 	if allowed && optionalRelation != "..." && (opts == nil || opts.OptionalSubjectRelation != optionalRelation) {
 		return fmt.Errorf("relation `%s` requires an optional subject relation `%s` for subject type `%s`", string(relation), optionalRelation, subject.ResourceType())
 	}
@@ -176,15 +175,15 @@ func (c *Client) DeleteRelationship(ctx context.Context, resource Resource, rela
 	return nil
 }
 
+func (c *Client) DeleteTeamRelationship(ctx context.Context, resource TeamResource, relation team.TeamRelation, subject Resource, opts *DeleteRelationshipOptions) error {
+	return c.DeleteRelationship(ctx, resource, string(relation), subject, opts)
+}
+
 func (c *Client) DeleteOrganizationRelationship(ctx context.Context, resource OrganizationResource, relation organization.OrganizationRelation, subject Resource, opts *DeleteRelationshipOptions) error {
 	return c.DeleteRelationship(ctx, resource, string(relation), subject, opts)
 }
 
 func (c *Client) DeleteDocumentRelationship(ctx context.Context, resource DocumentResource, relation document.DocumentRelation, subject Resource, opts *DeleteRelationshipOptions) error {
-	return c.DeleteRelationship(ctx, resource, string(relation), subject, opts)
-}
-
-func (c *Client) DeleteTeamRelationship(ctx context.Context, resource TeamResource, relation team.TeamRelation, subject Resource, opts *DeleteRelationshipOptions) error {
 	return c.DeleteRelationship(ctx, resource, string(relation), subject, opts)
 }
 
@@ -248,7 +247,7 @@ func (c *Client) LookupOrganizationResources(ctx context.Context, subject UserRe
 	return c.LookupResources(ctx, Organization, subject, string(permission), opts)
 }
 
-func (c *Client) LookupDocumentResources(ctx context.Context, subject Resource, permission document.DocumentPermission, opts *LookupResourcesOptions) ([]Resource, string, error) {
+func (c *Client) LookupDocumentResources(ctx context.Context, subject UserResource, permission document.DocumentPermission, opts *LookupResourcesOptions) ([]Resource, string, error) {
 	return c.LookupResources(ctx, Document, subject, string(permission), opts)
 }
 
