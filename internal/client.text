@@ -179,10 +179,10 @@ func (c *{{$ClientName}}) LookupResources(ctx context.Context, resourceType Reso
 		Subject: subjectRef,
 		Permission: permission,
 	}
-	if opts.Pagination.Limit != 0 {
+	if opts != nil && opts.Pagination.Limit != 0 {
 		req.OptionalLimit = uint32(opts.Pagination.Limit)
 	}
-	if opts.Pagination.Token != "" {
+	if opts != nil && opts.Pagination.Token != "" {
 		req.OptionalCursor = &pb.Cursor{Token: opts.Pagination.Token}
 	}
 	client, err := c.spicedbClient.LookupResources(ctx, &pb.LookupResourcesRequest{
@@ -235,10 +235,10 @@ func (c *{{$ClientName}}) LookupSubjects(ctx context.Context, resource Resource,
 		OptionalSubjectRelation: opts.OptionalSubjectRelation,
 		Permission:              permission,
 	}
-	if opts.Pagination.Limit != 0 {
+	if opts != nil && opts.Pagination.Limit != 0 {
 		req.OptionalConcreteLimit = uint32(opts.Pagination.Limit)
 	}
-	if opts.Pagination.Token != "" {
+	if opts != nil && opts.Pagination.Token != "" {
 		req.OptionalCursor = &pb.Cursor{Token: opts.Pagination.Token}
 	}
 	client, err := c.spicedbClient.LookupSubjects(ctx, req)
