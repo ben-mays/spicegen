@@ -18,10 +18,10 @@ func TestBuildSchema(t *testing.T) {
 		{
 			name: "simple schema",
 			schematxt: `definition user {}
-						definition document {
-							relation reader: user
-							permission view = reader
-						}`,
+                        definition document {
+                            relation reader: user
+                            permission view = reader
+                        }`,
 			validate: func(schema Schema) error {
 				// assert basic structure
 				if len(schema.Resources) != 2 {
@@ -71,10 +71,10 @@ func TestBuildSchema(t *testing.T) {
 		{
 			name: "simple schema with union",
 			schematxt: `definition user {}
-						definition document {
-							relation reader: user | document
-							permission view = reader
-						}`,
+                        definition document {
+                            relation reader: user | document
+                            permission view = reader
+                        }`,
 			validate: func(schema Schema) error {
 				readerRel := schema.Resources["document"].Relations["reader"]
 				if readerRel.Name != "reader" ||
@@ -113,13 +113,13 @@ func TestBuildSchema(t *testing.T) {
 		{
 			name: "simple schema with optional subject relation",
 			schematxt: `definition user {}
-			            definition team {
-							relation member: user
-						}
-						definition document {
-							relation reader: team#member
-							permission view = reader
-						}`,
+                        definition team {
+                            relation member: user
+                        }
+                        definition document {
+                            relation reader: team#member
+                            permission view = reader
+                        }`,
 			validate: func(schema Schema) error {
 				readerRel := schema.Resources["document"].Relations["reader"]
 				if readerRel.Name != "reader" ||
@@ -143,6 +143,32 @@ func TestBuildSchema(t *testing.T) {
 					len(viewPerm.RelationRefs) != 1 ||
 					viewPerm.RelationRefs[0].ResourceType != "document" ||
 					viewPerm.RelationRefs[0].Relation != "reader" ||
+					viewPerm.RelationRefs[0].Caveat != "" {
+					return fmt.Errorf("unexpected view permission: %+v", viewPerm)
+				}
+				return nil
+			},
+		},
+		{
+			name: "simple schema with userset rewrite",
+			schematxt: `definition user {}
+                        definition team {
+                            relation member: user
+                        }
+                        definition document {
+                            permission view = team->member
+                        }`,
+			validate: func(schema Schema) error {
+				viewPerm := schema.Resources["document"].Permissions["view"]
+				if viewPerm.Name != "view" ||
+					viewPerm.OutputName != "view" ||
+					viewPerm.Kind != "permission" ||
+					len(viewPerm.AllowedSubjectTypes) != 1 ||
+					viewPerm.AllowedSubjectTypes["user"] != "..." ||
+					len(viewPerm.OverrideAllowedSubjectTypes) != 0 ||
+					len(viewPerm.RelationRefs) != 1 ||
+					viewPerm.RelationRefs[0].ResourceType != "team" ||
+					viewPerm.RelationRefs[0].Relation != "member" ||
 					viewPerm.RelationRefs[0].Caveat != "" {
 					return fmt.Errorf("unexpected view permission: %+v", viewPerm)
 				}
