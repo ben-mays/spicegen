@@ -31,9 +31,8 @@ type Relation struct {
 	OutputName string
 	Kind       string
 	// ResourceTypes to enforce
-	AllowedSubjectTypes           []string
-	SubjectTypesOptionalRelations map[string]string
-	OverrideAllowedSubjectTypes   []string
+	AllowedSubjectTypes         map[string]string
+	OverrideAllowedSubjectTypes map[string]string
 	// Used for resolving allowed subject types if not given in a metatag
 	RelationRefs []RelationRef
 }
@@ -58,7 +57,6 @@ func set(arr ...string) []string {
 }
 
 func BuildSchema(compiledSchema *compiler.CompiledSchema) Schema {
-	// state tracks top-level resource definitions (i.e. definition statements) and their permissions/relations.
 	state := map[string]Resource{}
 	// Walk all objects and write their permissions/relations to state. Note, we don't resolve relation types here,
 	// so a relation may have a non-resource type. We need to resolve that later in a second pass.
@@ -74,9 +72,10 @@ func BuildSchema(compiledSchema *compiler.CompiledSchema) Schema {
 			}
 		}
 		state[sd.Name] = Resource{
-			Name:                  sd.Name,
-			Permissions:           permissions,
-			Relations:             relations,
+			Name:        sd.Name,
+			Permissions: permissions,
+			Relations:   relations,
+			// default to resource which is the abstract baseclass (i.e. wildcard)
 			PermissionSubjectType: "resource",
 			RelationSubjectType:   "resource",
 		}
@@ -86,38 +85,42 @@ func BuildSchema(compiledSchema *compiler.CompiledSchema) Schema {
 		all := maps.Values(resource.Relations)
 		all = append(all, maps.Values(resource.Permissions)...)
 		for _, relation := range all {
-			relation.SubjectTypesOptionalRelations = map[string]string{}
-			relation.AllowedSubjectTypes = []string{}
+			// Maps allowed subject types to optional relations, with `...` indicating it's a local ref.
+			relation.AllowedSubjectTypes = map[string]string{}
 			if len(relation.OverrideAllowedSubjectTypes) == 0 {
-				allowed := map[string]bool{}
-				// This logic is super wonky -- it's attempting to resolve the relation refs into concrete subject types.
+				allowed := map[string]string{}
 				// The gist: we build up allowed[] to point to all the allowed subject types for this relation. We also
 				// track any optional relations that are allowed on this relation. If there are no allowed subject types
-				// inferred we allow wildcard. Note: we could merge the maps of allowed subject types and optional relations
-				// but I bolted this on and didn't want to refactor.
+				// inferred we allow wildcard.
 				for _, ref := range relation.RelationRefs {
-					allowed[ref.ResourceType] = true
-					if ref.Relation == "..." {
-						// If the ref is concrete, we still append an optional relation equal to ... to make generation easier :shrug:
-						relation.SubjectTypesOptionalRelations[ref.ResourceType] = ref.Relation
-					} else {
-						// Does this relation exist on _this_ resource type? If so, resolve it to the allowed subject types.
-						// If it's on a different resource type, we keep the relation as-is.
+					// If this is a permission, we simply traverse the type graph and get a concrete set of types to enforce.
+					if relation.Kind == "permission" && ref.Relation != "..." {
 						if indirectRef, ok := state[ref.ResourceType].Relations[ref.Relation]; ok && len(indirectRef.AllowedSubjectTypes) != 0 {
-							for _, allowedSubjectType := range indirectRef.AllowedSubjectTypes {
-								allowed[allowedSubjectType] = true
+							for allowedSubjectType, optionalSubjectRef := range indirectRef.AllowedSubjectTypes {
+								// Check if we need one more level of resolution... this should be generalized. The issue is that we keep
+								// relations as indirect refs and permissions need concrete types.
+								if optionalSubjectRef == "..." {
+									allowed[allowedSubjectType] = optionalSubjectRef
+								} else {
+									if indirectRef, ok := state[allowedSubjectType].Relations[optionalSubjectRef]; ok && len(indirectRef.AllowedSubjectTypes) != 0 {
+										for allowedSubjectType, optionalSubjectRef := range indirectRef.AllowedSubjectTypes {
+											allowed[allowedSubjectType] = optionalSubjectRef
+										}
+									} else {
+										panic("found weird optional relation that doesn't exist in the schema")
+									}
+								}
 							}
-						} else {
-							relation.SubjectTypesOptionalRelations[ref.ResourceType] = ref.Relation
 						}
+					} else {
+						allowed[ref.ResourceType] = ref.Relation
 					}
-				}
-				// If there are no allowed subject types, we default to wildcard
-				if len(allowed) == 0 {
-					relation.AllowedSubjectTypes = []string{"*"}
-				} else {
-					for k := range allowed {
-						relation.AllowedSubjectTypes = append(relation.AllowedSubjectTypes, k)
+
+					// If there are no allowed subject types, we default to wildcard
+					if len(allowed) == 0 {
+						relation.AllowedSubjectTypes = map[string]string{"*": "..."}
+					} else {
+						relation.AllowedSubjectTypes = allowed
 					}
 				}
 			} else {
@@ -139,10 +142,10 @@ func BuildSchema(compiledSchema *compiler.CompiledSchema) Schema {
 		allowedRelations := []string{}
 		for _, relation := range all {
 			if relation.Kind == "permission" {
-				allowedPerms = append(allowedPerms, relation.AllowedSubjectTypes...)
+				allowedPerms = append(allowedPerms, maps.Keys(relation.AllowedSubjectTypes)...)
 				allowedPerms = set(allowedPerms...)
 			} else {
-				allowedRelations = append(allowedRelations, relation.AllowedSubjectTypes...)
+				allowedRelations = append(allowedRelations, maps.Keys(relation.AllowedSubjectTypes)...)
 				allowedRelations = set(allowedRelations...)
 			}
 		}
@@ -155,6 +158,7 @@ func BuildSchema(compiledSchema *compiler.CompiledSchema) Schema {
 			resource.RelationSubjectType = fmt.Sprintf("%s_resource", allowedRelations[0])
 		}
 		state[resourceName] = resource
+		// Convert to ordered map for deterministic output
 	}
 
 	return Schema{Resources: state}
@@ -162,7 +166,7 @@ func BuildSchema(compiledSchema *compiler.CompiledSchema) Schema {
 
 // captures spicegen metatag info
 type metatag struct {
-	allowedSubjectTypes []string
+	allowedSubjectTypes map[string]string
 	rename              string
 }
 
@@ -182,7 +186,15 @@ func parseMetatags(comments []*anypb.Any) metatag {
 			switch tag {
 			// Override subject type inference. This type does not have to exist in the schema!
 			case "subject_type":
-				m.allowedSubjectTypes = append(m.allowedSubjectTypes, tagval)
+				stypesplit := strings.Split(tagval, "#")
+				if m.allowedSubjectTypes == nil {
+					m.allowedSubjectTypes = map[string]string{}
+				}
+				optionalSubjectRef := "..."
+				if len(stypesplit) == 2 {
+					optionalSubjectRef = stypesplit[1]
+				}
+				m.allowedSubjectTypes[stypesplit[0]] = optionalSubjectRef
 			// Rename public type but use value for spicedb
 			case "rename":
 				m.rename = tagval
