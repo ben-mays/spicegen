@@ -8,6 +8,7 @@ import (
 	structpb "google.golang.org/protobuf/types/known/structpb"
 
 	"github.com/ben-mays/spicegen/examples/permissions/document"
+
 	"github.com/ben-mays/spicegen/examples/permissions/organization"
 	"github.com/ben-mays/spicegen/examples/permissions/team"
 )
@@ -16,9 +17,9 @@ type ResourceType string
 
 const (
 	Document     ResourceType = "document"
-	Organization ResourceType = "organization"
-	Team         ResourceType = "team"
 	User         ResourceType = "user"
+	Team         ResourceType = "team"
+	Organization ResourceType = "organization"
 )
 
 type Resource interface {
@@ -32,14 +33,14 @@ func NewResource(resourceType ResourceType, ID string) (Resource, error) {
 	case Document:
 		return DocumentResource{rid: ID}, nil
 
-	case Organization:
-		return OrganizationResource{rid: ID}, nil
+	case User:
+		return UserResource{rid: ID}, nil
 
 	case Team:
 		return TeamResource{rid: ID}, nil
 
-	case User:
-		return UserResource{rid: ID}, nil
+	case Organization:
+		return OrganizationResource{rid: ID}, nil
 
 	}
 	return nil, errors.New("resourceType given is not valid")
@@ -61,20 +62,20 @@ func NewDocumentResource(ID string) DocumentResource {
 	return DocumentResource{rid: ID}
 }
 
-type OrganizationResource struct {
+type UserResource struct {
 	rid string
 }
 
-func (r OrganizationResource) ID() string {
+func (r UserResource) ID() string {
 	return r.rid
 }
 
-func (r OrganizationResource) ResourceType() ResourceType {
-	return Organization
+func (r UserResource) ResourceType() ResourceType {
+	return User
 }
 
-func NewOrganizationResource(ID string) OrganizationResource {
-	return OrganizationResource{rid: ID}
+func NewUserResource(ID string) UserResource {
+	return UserResource{rid: ID}
 }
 
 type TeamResource struct {
@@ -93,37 +94,37 @@ func NewTeamResource(ID string) TeamResource {
 	return TeamResource{rid: ID}
 }
 
-type UserResource struct {
+type OrganizationResource struct {
 	rid string
 }
 
-func (r UserResource) ID() string {
+func (r OrganizationResource) ID() string {
 	return r.rid
 }
 
-func (r UserResource) ResourceType() ResourceType {
-	return User
+func (r OrganizationResource) ResourceType() ResourceType {
+	return Organization
 }
 
-func NewUserResource(ID string) UserResource {
-	return UserResource{rid: ID}
+func NewOrganizationResource(ID string) OrganizationResource {
+	return OrganizationResource{rid: ID}
 }
 
 type SpiceGenClient interface {
-	CheckDocumentPermission(ctx context.Context, subject UserResource, permission document.DocumentPermission, resource DocumentResource, opts *CheckPermissionOptions) (bool, error)
-	CheckOrganizationPermission(ctx context.Context, subject UserResource, permission organization.OrganizationPermission, resource OrganizationResource, opts *CheckPermissionOptions) (bool, error)
+	CheckDocumentPermission(ctx context.Context, subject Resource, permission document.DocumentPermission, resource DocumentResource, opts *CheckPermissionOptions) (bool, error)
+	CheckOrganizationPermission(ctx context.Context, subject Resource, permission organization.OrganizationPermission, resource OrganizationResource, opts *CheckPermissionOptions) (bool, error)
 
 	AddDocumentRelationship(ctx context.Context, resource DocumentResource, relation document.DocumentRelation, subject Resource, opts *AddRelationshipOptions) error
-	AddOrganizationRelationship(ctx context.Context, resource OrganizationResource, relation organization.OrganizationRelation, subject Resource, opts *AddRelationshipOptions) error
 	AddTeamRelationship(ctx context.Context, resource TeamResource, relation team.TeamRelation, subject Resource, opts *AddRelationshipOptions) error
+	AddOrganizationRelationship(ctx context.Context, resource OrganizationResource, relation organization.OrganizationRelation, subject Resource, opts *AddRelationshipOptions) error
 
 	DeleteDocumentRelationship(ctx context.Context, resource DocumentResource, relation document.DocumentRelation, subject Resource, opts *DeleteRelationshipOptions) error
-	DeleteOrganizationRelationship(ctx context.Context, resource OrganizationResource, relation organization.OrganizationRelation, subject Resource, opts *DeleteRelationshipOptions) error
 	DeleteTeamRelationship(ctx context.Context, resource TeamResource, relation team.TeamRelation, subject Resource, opts *DeleteRelationshipOptions) error
+	DeleteOrganizationRelationship(ctx context.Context, resource OrganizationResource, relation organization.OrganizationRelation, subject Resource, opts *DeleteRelationshipOptions) error
 
-	LookupDocumentResources(ctx context.Context, subject UserResource, permission document.DocumentPermission, opts *LookupResourcesOptions) ([]string, string, error)
+	LookupDocumentResources(ctx context.Context, subject Resource, permission document.DocumentPermission, opts *LookupResourcesOptions) ([]string, string, error)
 	LookupDocumentSubjects(ctx context.Context, resourceID string, subjectType ResourceType, permission document.DocumentPermission, opts *LookupSubjectsOptions) ([]string, string, error)
-	LookupOrganizationResources(ctx context.Context, subject UserResource, permission organization.OrganizationPermission, opts *LookupResourcesOptions) ([]string, string, error)
+	LookupOrganizationResources(ctx context.Context, subject Resource, permission organization.OrganizationPermission, opts *LookupResourcesOptions) ([]string, string, error)
 	LookupOrganizationSubjects(ctx context.Context, resourceID string, subjectType ResourceType, permission organization.OrganizationPermission, opts *LookupSubjectsOptions) ([]string, string, error)
 }
 

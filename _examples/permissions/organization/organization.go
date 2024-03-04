@@ -7,19 +7,6 @@ const (
 	ViewAllDocumentsPermission OrganizationPermission = "view_all_documents"
 )
 
-var ALLOWED_PERMISSION_SUBJECT_TYPES = map[OrganizationPermission]map[string]bool{
-	ViewAllDocumentsPermission: {
-		"user": true,
-	},
-}
-
-var ALLOWED_RELATION_SUBJECT_TYPES = map[OrganizationRelation]map[string]string{
-	AdministratorRelation: {
-		"team": "...",
-		"user": "...",
-	},
-}
-
 type OrganizationRelation string
 
 const (

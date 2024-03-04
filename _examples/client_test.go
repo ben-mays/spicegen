@@ -141,10 +141,6 @@ func TestSpiceDB(t *testing.T) {
 	assert.Nil(t, err)
 	assert.Equal(t, 0, len(resources))
 
-	err = svc.AddTeamRelationship(ctx, authz.NewTeamResource("nike"), team.MemberRelation, authz.NewTeamResource("ben"), nil)
-	assert.NotNil(t, err)
-	assert.Equal(t, "relation `member` requires an optional subject relation `member` for subject type `team`", err.Error())
-
 	err = svc.AddTeamRelationship(ctx, authz.NewTeamResource("nike"), team.MemberRelation, authz.NewTeamResource("ben"), &authz.AddRelationshipOptions{OptionalSubjectRelation: "member"})
 	assert.Nil(t, err)
 }

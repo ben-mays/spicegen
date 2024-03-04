@@ -7,24 +7,6 @@ const (
 	ViewPermission DocumentPermission = "view"
 )
 
-var ALLOWED_PERMISSION_SUBJECT_TYPES = map[DocumentPermission]map[string]bool{
-	ViewPermission: {
-		"user": true,
-	},
-}
-
-var ALLOWED_RELATION_SUBJECT_TYPES = map[DocumentRelation]map[string]string{
-	DocorgRelation: {
-		"organization": "...",
-	},
-	ReaderRelation: {
-		"user": "...",
-	},
-	WriterRelation: {
-		"user": "...",
-	},
-}
-
 type DocumentRelation string
 
 const (
