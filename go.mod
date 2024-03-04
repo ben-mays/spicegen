@@ -37,6 +37,6 @@ require (
 )
 
 require (
-	github.com/authzed/spicedb 1.29.2
+	github.com/authzed/spicedb v1.29.2
 	github.com/iancoleman/strcase v0.3.0
 )
