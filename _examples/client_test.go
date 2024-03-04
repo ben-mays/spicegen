@@ -131,7 +131,7 @@ func TestSpiceDB(t *testing.T) {
 		document.ViewPermission,
 		nil)
 	assert.Nil(t, err)
-	assert.Equal(t, []authz.Resource{authz.NewDocumentResource("readme")}, resources)
+	assert.Equal(t, []string{"readme"}, resources)
 
 	// What docs can Alice read?
 	resources, _, err = svc.LookupDocumentResources(ctx,

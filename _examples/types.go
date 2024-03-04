@@ -7,17 +7,17 @@ import (
 	pb "github.com/authzed/authzed-go/proto/authzed/api/v1"
 	structpb "google.golang.org/protobuf/types/known/structpb"
 
-	"github.com/ben-mays/spicegen/_examples/permissions/document"
-	"github.com/ben-mays/spicegen/_examples/permissions/organization"
-	"github.com/ben-mays/spicegen/_examples/permissions/team"
+	"github.com/ben-mays/spicegen/examples/permissions/document"
+	"github.com/ben-mays/spicegen/examples/permissions/organization"
+	"github.com/ben-mays/spicegen/examples/permissions/team"
 )
 
 type ResourceType string
 
 const (
-	Team         ResourceType = "team"
-	Organization ResourceType = "organization"
 	Document     ResourceType = "document"
+	Organization ResourceType = "organization"
+	Team         ResourceType = "team"
 	User         ResourceType = "user"
 )
 
@@ -29,14 +29,14 @@ type Resource interface {
 func NewResource(resourceType ResourceType, ID string) (Resource, error) {
 	switch resourceType {
 
-	case Team:
-		return TeamResource{rid: ID}, nil
+	case Document:
+		return DocumentResource{rid: ID}, nil
 
 	case Organization:
 		return OrganizationResource{rid: ID}, nil
 
-	case Document:
-		return DocumentResource{rid: ID}, nil
+	case Team:
+		return TeamResource{rid: ID}, nil
 
 	case User:
 		return UserResource{rid: ID}, nil
@@ -45,20 +45,20 @@ func NewResource(resourceType ResourceType, ID string) (Resource, error) {
 	return nil, errors.New("resourceType given is not valid")
 }
 
-type TeamResource struct {
+type DocumentResource struct {
 	rid string
 }
 
-func (r TeamResource) ID() string {
+func (r DocumentResource) ID() string {
 	return r.rid
 }
 
-func (r TeamResource) ResourceType() ResourceType {
-	return Team
+func (r DocumentResource) ResourceType() ResourceType {
+	return Document
 }
 
-func NewTeamResource(ID string) TeamResource {
-	return TeamResource{rid: ID}
+func NewDocumentResource(ID string) DocumentResource {
+	return DocumentResource{rid: ID}
 }
 
 type OrganizationResource struct {
@@ -77,20 +77,20 @@ func NewOrganizationResource(ID string) OrganizationResource {
 	return OrganizationResource{rid: ID}
 }
 
-type DocumentResource struct {
+type TeamResource struct {
 	rid string
 }
 
-func (r DocumentResource) ID() string {
+func (r TeamResource) ID() string {
 	return r.rid
 }
 
-func (r DocumentResource) ResourceType() ResourceType {
-	return Document
+func (r TeamResource) ResourceType() ResourceType {
+	return Team
 }
 
-func NewDocumentResource(ID string) DocumentResource {
-	return DocumentResource{rid: ID}
+func NewTeamResource(ID string) TeamResource {
+	return TeamResource{rid: ID}
 }
 
 type UserResource struct {
@@ -110,21 +110,21 @@ func NewUserResource(ID string) UserResource {
 }
 
 type SpiceGenClient interface {
-	CheckOrganizationPermission(ctx context.Context, subject UserResource, permission organization.OrganizationPermission, resource OrganizationResource, opts *CheckPermissionOptions) (bool, error)
 	CheckDocumentPermission(ctx context.Context, subject UserResource, permission document.DocumentPermission, resource DocumentResource, opts *CheckPermissionOptions) (bool, error)
+	CheckOrganizationPermission(ctx context.Context, subject UserResource, permission organization.OrganizationPermission, resource OrganizationResource, opts *CheckPermissionOptions) (bool, error)
 
-	AddTeamRelationship(ctx context.Context, resource TeamResource, relation team.TeamRelation, subject Resource, opts *AddRelationshipOptions) error
-	AddOrganizationRelationship(ctx context.Context, resource OrganizationResource, relation organization.OrganizationRelation, subject Resource, opts *AddRelationshipOptions) error
 	AddDocumentRelationship(ctx context.Context, resource DocumentResource, relation document.DocumentRelation, subject Resource, opts *AddRelationshipOptions) error
+	AddOrganizationRelationship(ctx context.Context, resource OrganizationResource, relation organization.OrganizationRelation, subject Resource, opts *AddRelationshipOptions) error
+	AddTeamRelationship(ctx context.Context, resource TeamResource, relation team.TeamRelation, subject Resource, opts *AddRelationshipOptions) error
 
-	DeleteTeamRelationship(ctx context.Context, resource TeamResource, relation team.TeamRelation, subject Resource, opts *DeleteRelationshipOptions) error
-	DeleteOrganizationRelationship(ctx context.Context, resource OrganizationResource, relation organization.OrganizationRelation, subject Resource, opts *DeleteRelationshipOptions) error
 	DeleteDocumentRelationship(ctx context.Context, resource DocumentResource, relation document.DocumentRelation, subject Resource, opts *DeleteRelationshipOptions) error
+	DeleteOrganizationRelationship(ctx context.Context, resource OrganizationResource, relation organization.OrganizationRelation, subject Resource, opts *DeleteRelationshipOptions) error
+	DeleteTeamRelationship(ctx context.Context, resource TeamResource, relation team.TeamRelation, subject Resource, opts *DeleteRelationshipOptions) error
 
-	LookupOrganizationResources(ctx context.Context, subject UserResource, permission organization.OrganizationPermission, opts *LookupResourcesOptions) ([]Resource, string, error)
-	LookupOrganizationSubjects(ctx context.Context, resourceID string, subjectType ResourceType, permission organization.OrganizationPermission, opts *LookupSubjectsOptions) ([]Resource, string, error)
-	LookupDocumentResources(ctx context.Context, subject UserResource, permission document.DocumentPermission, opts *LookupResourcesOptions) ([]Resource, string, error)
-	LookupDocumentSubjects(ctx context.Context, resourceID string, subjectType ResourceType, permission document.DocumentPermission, opts *LookupSubjectsOptions) ([]Resource, string, error)
+	LookupDocumentResources(ctx context.Context, subject UserResource, permission document.DocumentPermission, opts *LookupResourcesOptions) ([]string, string, error)
+	LookupDocumentSubjects(ctx context.Context, resourceID string, subjectType ResourceType, permission document.DocumentPermission, opts *LookupSubjectsOptions) ([]string, string, error)
+	LookupOrganizationResources(ctx context.Context, subject UserResource, permission organization.OrganizationPermission, opts *LookupResourcesOptions) ([]string, string, error)
+	LookupOrganizationSubjects(ctx context.Context, resourceID string, subjectType ResourceType, permission organization.OrganizationPermission, opts *LookupSubjectsOptions) ([]string, string, error)
 }
 
 type CheckPermissionOptions struct {

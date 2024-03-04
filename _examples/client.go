@@ -10,10 +10,9 @@ import (
 	pb "github.com/authzed/authzed-go/proto/authzed/api/v1"
 	structpb "google.golang.org/protobuf/types/known/structpb"
 
-	"github.com/ben-mays/spicegen/_examples/permissions/document"
-
-	"github.com/ben-mays/spicegen/_examples/permissions/organization"
-	"github.com/ben-mays/spicegen/_examples/permissions/team"
+	"github.com/ben-mays/spicegen/examples/permissions/document"
+	"github.com/ben-mays/spicegen/examples/permissions/organization"
+	"github.com/ben-mays/spicegen/examples/permissions/team"
 )
 
 // SpiceDBClient is the interface that the spicegen generated client wraps.
@@ -133,9 +132,9 @@ func (c *Client) AddDocumentRelationship(ctx context.Context, resource DocumentR
 	}
 }
 
-func (c *Client) AddTeamRelationship(ctx context.Context, resource TeamResource, relation team.TeamRelation, subject Resource, opts *AddRelationshipOptions) error {
-	optionalRelation, allowed := team.ALLOWED_RELATION_SUBJECT_TYPES[relation][string(subject.ResourceType())]
-	_, hasWildcard := team.ALLOWED_RELATION_SUBJECT_TYPES[relation]["*"]
+func (c *Client) AddOrganizationRelationship(ctx context.Context, resource OrganizationResource, relation organization.OrganizationRelation, subject Resource, opts *AddRelationshipOptions) error {
+	optionalRelation, allowed := organization.ALLOWED_RELATION_SUBJECT_TYPES[relation][string(subject.ResourceType())]
+	_, hasWildcard := organization.ALLOWED_RELATION_SUBJECT_TYPES[relation]["*"]
 	if allowed && optionalRelation != "..." && (opts == nil || opts.OptionalSubjectRelation != optionalRelation) {
 		return fmt.Errorf("relation `%s` requires an optional subject relation `%s` for subject type `%s`", string(relation), optionalRelation, subject.ResourceType())
 	}
@@ -146,9 +145,9 @@ func (c *Client) AddTeamRelationship(ctx context.Context, resource TeamResource,
 	}
 }
 
-func (c *Client) AddOrganizationRelationship(ctx context.Context, resource OrganizationResource, relation organization.OrganizationRelation, subject Resource, opts *AddRelationshipOptions) error {
-	optionalRelation, allowed := organization.ALLOWED_RELATION_SUBJECT_TYPES[relation][string(subject.ResourceType())]
-	_, hasWildcard := organization.ALLOWED_RELATION_SUBJECT_TYPES[relation]["*"]
+func (c *Client) AddTeamRelationship(ctx context.Context, resource TeamResource, relation team.TeamRelation, subject Resource, opts *AddRelationshipOptions) error {
+	optionalRelation, allowed := team.ALLOWED_RELATION_SUBJECT_TYPES[relation][string(subject.ResourceType())]
+	_, hasWildcard := team.ALLOWED_RELATION_SUBJECT_TYPES[relation]["*"]
 	if allowed && optionalRelation != "..." && (opts == nil || opts.OptionalSubjectRelation != optionalRelation) {
 		return fmt.Errorf("relation `%s` requires an optional subject relation `%s` for subject type `%s`", string(relation), optionalRelation, subject.ResourceType())
 	}
@@ -180,15 +179,15 @@ func (c *Client) DeleteDocumentRelationship(ctx context.Context, resource Docume
 	return c.DeleteRelationship(ctx, resource, string(relation), subject, opts)
 }
 
-func (c *Client) DeleteTeamRelationship(ctx context.Context, resource TeamResource, relation team.TeamRelation, subject Resource, opts *DeleteRelationshipOptions) error {
-	return c.DeleteRelationship(ctx, resource, string(relation), subject, opts)
-}
-
 func (c *Client) DeleteOrganizationRelationship(ctx context.Context, resource OrganizationResource, relation organization.OrganizationRelation, subject Resource, opts *DeleteRelationshipOptions) error {
 	return c.DeleteRelationship(ctx, resource, string(relation), subject, opts)
 }
 
-func (c *Client) LookupResources(ctx context.Context, resourceType ResourceType, subject Resource, permission string, opts *LookupResourcesOptions) ([]Resource, string, error) {
+func (c *Client) DeleteTeamRelationship(ctx context.Context, resource TeamResource, relation team.TeamRelation, subject Resource, opts *DeleteRelationshipOptions) error {
+	return c.DeleteRelationship(ctx, resource, string(relation), subject, opts)
+}
+
+func (c *Client) LookupResources(ctx context.Context, resourceType ResourceType, subject Resource, permission string, opts *LookupResourcesOptions) ([]string, string, error) {
 	c.RLock()
 	defer c.RUnlock()
 	subjectRef := &pb.SubjectReference{
@@ -221,14 +220,13 @@ func (c *Client) LookupResources(ctx context.Context, resourceType ResourceType,
 	if err != nil {
 		return nil, "", err
 	}
-	resources := make([]Resource, 0)
+	resources := make([]string, 0)
 	lastToken := ""
 	for {
 		resp, err := client.Recv()
 		if resp != nil && resp.ResourceObjectId != "" {
 			// suppress error because we _know_ this is a correct resource type given the generation
-			resource, _ := NewResource(resourceType, resp.ResourceObjectId)
-			resources = append(resources, resource)
+			resources = append(resources, resp.ResourceObjectId)
 			if resp.AfterResultCursor != nil {
 				lastToken = resp.AfterResultCursor.Token
 			}
@@ -244,15 +242,15 @@ func (c *Client) LookupResources(ctx context.Context, resourceType ResourceType,
 	return resources, lastToken, nil
 }
 
-func (c *Client) LookupDocumentResources(ctx context.Context, subject UserResource, permission document.DocumentPermission, opts *LookupResourcesOptions) ([]Resource, string, error) {
+func (c *Client) LookupDocumentResources(ctx context.Context, subject UserResource, permission document.DocumentPermission, opts *LookupResourcesOptions) ([]string, string, error) {
 	return c.LookupResources(ctx, Document, subject, string(permission), opts)
 }
 
-func (c *Client) LookupOrganizationResources(ctx context.Context, subject UserResource, permission organization.OrganizationPermission, opts *LookupResourcesOptions) ([]Resource, string, error) {
+func (c *Client) LookupOrganizationResources(ctx context.Context, subject UserResource, permission organization.OrganizationPermission, opts *LookupResourcesOptions) ([]string, string, error) {
 	return c.LookupResources(ctx, Organization, subject, string(permission), opts)
 }
 
-func (c *Client) LookupSubjects(ctx context.Context, resource Resource, subjectType ResourceType, permission string, opts *LookupSubjectsOptions) ([]Resource, string, error) {
+func (c *Client) LookupSubjects(ctx context.Context, resource Resource, subjectType ResourceType, permission string, opts *LookupSubjectsOptions) ([]string, string, error) {
 	c.RLock()
 	defer c.RUnlock()
 	req := &pb.LookupSubjectsRequest{
@@ -272,13 +270,12 @@ func (c *Client) LookupSubjects(ctx context.Context, resource Resource, subjectT
 	if err != nil {
 		return nil, "", err
 	}
-	subjects := make([]Resource, 0)
+	subjects := make([]string, 0)
 	lastToken := ""
 	for {
 		resp, err := client.Recv()
 		if resp != nil && resp.Subject != nil {
-			subject, _ := NewResource(subjectType, resp.Subject.SubjectObjectId)
-			subjects = append(subjects, subject)
+			subjects = append(subjects, resp.Subject.SubjectObjectId)
 			if resp.AfterResultCursor != nil {
 				lastToken = resp.AfterResultCursor.Token
 			}
@@ -294,12 +291,12 @@ func (c *Client) LookupSubjects(ctx context.Context, resource Resource, subjectT
 	return subjects, lastToken, nil
 }
 
-func (c *Client) LookupDocumentSubjects(ctx context.Context, resourceID string, subjectType ResourceType, permission document.DocumentPermission, opts *LookupSubjectsOptions) ([]Resource, string, error) {
+func (c *Client) LookupDocumentSubjects(ctx context.Context, resourceID string, subjectType ResourceType, permission document.DocumentPermission, opts *LookupSubjectsOptions) ([]string, string, error) {
 	resource, _ := NewResource(Document, resourceID)
 	return c.LookupSubjects(ctx, resource, subjectType, string(permission), opts)
 }
 
-func (c *Client) LookupOrganizationSubjects(ctx context.Context, resourceID string, subjectType ResourceType, permission organization.OrganizationPermission, opts *LookupSubjectsOptions) ([]Resource, string, error) {
+func (c *Client) LookupOrganizationSubjects(ctx context.Context, resourceID string, subjectType ResourceType, permission organization.OrganizationPermission, opts *LookupSubjectsOptions) ([]string, string, error) {
 	resource, _ := NewResource(Organization, resourceID)
 	return c.LookupSubjects(ctx, resource, subjectType, string(permission), opts)
 }
