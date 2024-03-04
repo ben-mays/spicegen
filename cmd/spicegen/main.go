@@ -7,10 +7,12 @@ import (
 	"fmt"
 	"os"
 	"path"
+	"sort"
 	"strings"
 
 	"github.com/authzed/spicedb/pkg/schemadsl/compiler"
 	"github.com/ben-mays/spicegen/internal"
+	"golang.org/x/exp/maps"
 )
 
 func main() {
@@ -163,13 +165,40 @@ func main() {
 			}
 		}
 	}
+
+	// Sort everything
+	resources := SortedMap(state.Resources)
+	for i, rsc := range resources {
+		resources[i].PermissionsArray = SortedMap(rsc.Permissions)
+		resources[i].RelationsArray = SortedMap(rsc.Relations)
+	}
+
 	fmt.Printf("writing types to %s with packageName %s\n", path.Join(*outputPath, "types.go"), *outputPackageName)
-	internal.GenTypes(state, *outputPath, "types.go", *outputPackageName, *outputInterfaceName, *outputImportPath)
+	internal.GenTypes(maps.Values(state.Resources), *outputPath, "types.go", *outputPackageName, *outputInterfaceName, *outputImportPath)
 	if !*skipClientGeneration {
 		fmt.Printf("writing client to %s with packageName %s\n", path.Join(*outputPath, outputFileName), *outputPackageName)
-		internal.GenClient(state, *outputPath, outputFileName, *outputPackageName, *outputClientName, *outputInterfaceName, *outputImportPath)
+		internal.GenClient(maps.Values(state.Resources), *outputPath, outputFileName, *outputPackageName, *outputClientName, *outputInterfaceName, *outputImportPath)
 	}
-	for _, rsc := range state.Resources {
+	for _, rsc := range resources {
 		internal.GenResource(rsc, permissionPath, rsc.Name)
 	}
+}
+
+func SortedKeys[T any](anyMap map[string]T) []string {
+	keys := make([]string, 0)
+	for k := range anyMap {
+		keys = append(keys, k)
+	}
+	sort.Strings(keys)
+	return keys
+}
+
+// Returns an array of values from a map, sorted by the keys
+func SortedMap[T any](anyMap map[string]T) []T {
+	keys := SortedKeys[T](anyMap)
+	values := make([]T, len(keys))
+	for i, k := range keys {
+		values[i] = anyMap[k]
+	}
+	return values
 }

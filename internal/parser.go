@@ -1,7 +1,6 @@
 package internal
 
 import (
-	"fmt"
 	"strings"
 
 	corev1 "github.com/authzed/spicedb/pkg/proto/core/v1"
@@ -82,87 +81,6 @@ func BuildSchema(compiledSchema *compiler.CompiledSchema) Schema {
 			RelationSubjectType:   "resource",
 		}
 	}
-	// Second pass to map RelationRefs to allowedSubjectTypes
-	for resourceName, resource := range state {
-		all := maps.Values(resource.Relations)
-		all = append(all, maps.Values(resource.Permissions)...)
-		for _, relation := range all {
-			// Maps allowed subject types to optional relations, with `...` indicating it's a local ref.
-			relation.AllowedSubjectTypes = map[string]string{}
-			if len(relation.OverrideAllowedSubjectTypes) == 0 {
-				allowed := map[string]string{}
-				// The gist: we build up allowed[] to point to all the allowed subject types for this relation. We also
-				// track any optional relations that are allowed on this relation. If there are no allowed subject types
-				// inferred we allow wildcard.
-				for _, ref := range relation.RelationRefs {
-					// If this is a permission, we simply traverse the type graph and get a concrete set of types to enforce.
-					if relation.Kind == "permission" && ref.Relation != "..." {
-						if indirectRef, ok := state[ref.ResourceType].Relations[ref.Relation]; ok && len(indirectRef.AllowedSubjectTypes) != 0 {
-							for allowedSubjectType, optionalSubjectRef := range indirectRef.AllowedSubjectTypes {
-								// Check if we need one more level of resolution... this should be generalized. The issue is that we keep
-								// relations as indirect refs and permissions need concrete types.
-								if optionalSubjectRef == "..." {
-									allowed[allowedSubjectType] = optionalSubjectRef
-								} else {
-									if indirectRef, ok := state[allowedSubjectType].Relations[optionalSubjectRef]; ok && len(indirectRef.AllowedSubjectTypes) != 0 {
-										for allowedSubjectType, optionalSubjectRef := range indirectRef.AllowedSubjectTypes {
-											allowed[allowedSubjectType] = optionalSubjectRef
-										}
-									} else {
-										panic("found weird optional relation that doesn't exist in the schema")
-									}
-								}
-							}
-						}
-					} else {
-						allowed[ref.ResourceType] = ref.Relation
-					}
-
-					// If there are no allowed subject types, we default to wildcard
-					if len(allowed) == 0 {
-						relation.AllowedSubjectTypes = map[string]string{"*": "..."}
-					} else {
-						relation.AllowedSubjectTypes = allowed
-					}
-				}
-			} else {
-				relation.AllowedSubjectTypes = relation.OverrideAllowedSubjectTypes
-			}
-			if relation.Kind == "permission" {
-				state[resourceName].Permissions[relation.Name] = relation
-			} else {
-				state[resourceName].Relations[relation.Name] = relation
-			}
-		}
-	}
-
-	// Final pass to find opportunities to make subjects concrete
-	for resourceName, resource := range state {
-		all := maps.Values(resource.Relations)
-		all = append(all, maps.Values(resource.Permissions)...)
-		allowedPerms := []string{}
-		allowedRelations := []string{}
-		for _, relation := range all {
-			if relation.Kind == "permission" {
-				allowedPerms = append(allowedPerms, maps.Keys(relation.AllowedSubjectTypes)...)
-				allowedPerms = set(allowedPerms...)
-			} else {
-				allowedRelations = append(allowedRelations, maps.Keys(relation.AllowedSubjectTypes)...)
-				allowedRelations = set(allowedRelations...)
-			}
-		}
-		// If there is only one allowed subject type and it's not wildcard, set it as the permission subject type for this relation
-		if len(allowedPerms) == 1 && allowedPerms[0] != "*" {
-			resource.PermissionSubjectType = fmt.Sprintf("%s_resource", allowedPerms[0])
-		}
-		// Likewise for relation subject types
-		if len(allowedRelations) == 1 && allowedRelations[0] != "*" {
-			resource.RelationSubjectType = fmt.Sprintf("%s_resource", allowedRelations[0])
-		}
-		state[resourceName] = resource
-		// Convert to ordered map for deterministic output
-	}
-
 	return Schema{Resources: state}
 }
 
@@ -286,6 +204,7 @@ func handleRelation(resourceType string, rel *corev1.Relation) Relation {
 				refs = append(refs, r)
 			}
 		}
+		relation.AllowedSubjectTypes = map[string]string{"*": "..."}
 		relation.RelationRefs = refs
 	}
 	return relation

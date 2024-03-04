@@ -14,7 +14,7 @@ import (
 {{/* Create a ResourceType for each resource */}}
 type ResourceType string
 const (
-{{ range $rsc := .Resources }}{{ $rsc.Name | ToCamel }} ResourceType = "{{ $rsc.Name }}"
+{{ range $key, $rsc := .Resources }}{{ $rsc.Name | ToCamel }} ResourceType = "{{ $rsc.Name }}"
 {{ end }}
 )
 

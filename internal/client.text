@@ -4,7 +4,6 @@ package {{.PackageName}}
 import (
 	"sync"
 	"context"
-	"fmt"
 	"io"
 
 	pb "github.com/authzed/authzed-go/proto/authzed/api/v1"
@@ -73,11 +72,7 @@ func (c *{{.ClientName}}) CheckPermission(ctx context.Context, subject Resource,
 {{ if $rsc.Permissions }}
 {{ $subjectType := $rsc.PermissionSubjectType | ToCamel }} 
 func (c *{{$ClientName}}) Check{{ $resource }}Permission(ctx context.Context, subject {{ $subjectType }}, permission {{ $rsc.Name }}.{{ $resource }}Permission, resource {{ $resource }}Resource, opts *CheckPermissionOptions) (bool, error) {
-	if {{ $rsc.Name }}.ALLOWED_PERMISSION_SUBJECT_TYPES[permission][string(subject.ResourceType())] || {{ $rsc.Name }}.ALLOWED_PERMISSION_SUBJECT_TYPES[permission]["*"] {
-		return c.CheckPermission(ctx, subject, string(permission), resource, opts)
-	} else {
-		return false, fmt.Errorf("subject type not allowed for permission %s", string(permission))
-	}
+	return c.CheckPermission(ctx, subject, string(permission), resource, opts)
 } {{ end }}
 {{ end}}
 
@@ -122,16 +117,7 @@ func (c *{{$ClientName}}) AddRelationship(ctx context.Context, resource Resource
 {{ if $rsc.Relations }}
 {{ $subjectType := $rsc.RelationSubjectType | ToCamel }}
 func (c *{{$ClientName}}) Add{{ $resource }}Relationship(ctx context.Context, resource {{ $resource }}Resource, relation {{ $rsc.Name }}.{{ $resource }}Relation, subject {{ $subjectType }}, opts *AddRelationshipOptions) (error) {
-	optionalRelation, allowed := {{ $rsc.Name }}.ALLOWED_RELATION_SUBJECT_TYPES[relation][string(subject.ResourceType())]
-	_, hasWildcard := {{ $rsc.Name }}.ALLOWED_RELATION_SUBJECT_TYPES[relation]["*"]
-	if allowed && optionalRelation != "..." && (opts == nil || opts.OptionalSubjectRelation != optionalRelation) {
-		return fmt.Errorf("relation `%s` requires an optional subject relation `%s` for subject type `%s`", string(relation), optionalRelation, subject.ResourceType())
-	}
-	if allowed || hasWildcard {
-		return c.AddRelationship(ctx, resource, string(relation), subject, opts)
-	} else {
-		return fmt.Errorf("subject type not allowed for relation %s", string(relation))
-	}
+	return c.AddRelationship(ctx, resource, string(relation), subject, opts)
 } {{ end }}
 {{ end}}
 

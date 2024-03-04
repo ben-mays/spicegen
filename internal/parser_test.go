@@ -43,8 +43,6 @@ func TestBuildSchema(t *testing.T) {
 				if readerRel.Name != "reader" ||
 					readerRel.OutputName != "reader" ||
 					readerRel.Kind != "relation" ||
-					len(readerRel.AllowedSubjectTypes) != 1 ||
-					readerRel.AllowedSubjectTypes["user"] != "..." ||
 					len(readerRel.OverrideAllowedSubjectTypes) != 0 ||
 					len(readerRel.RelationRefs) != 1 ||
 					readerRel.RelationRefs[0].ResourceType != "user" ||
@@ -56,8 +54,6 @@ func TestBuildSchema(t *testing.T) {
 				if viewPerm.Name != "view" ||
 					viewPerm.OutputName != "view" ||
 					viewPerm.Kind != "permission" ||
-					len(viewPerm.AllowedSubjectTypes) != 1 ||
-					viewPerm.AllowedSubjectTypes["user"] != "..." ||
 					len(viewPerm.OverrideAllowedSubjectTypes) != 0 ||
 					len(viewPerm.RelationRefs) != 1 ||
 					viewPerm.RelationRefs[0].ResourceType != "document" ||
@@ -80,9 +76,6 @@ func TestBuildSchema(t *testing.T) {
 				if readerRel.Name != "reader" ||
 					readerRel.OutputName != "reader" ||
 					readerRel.Kind != "relation" ||
-					len(readerRel.AllowedSubjectTypes) != 2 ||
-					readerRel.AllowedSubjectTypes["user"] != "..." ||
-					readerRel.AllowedSubjectTypes["document"] != "..." ||
 					len(readerRel.OverrideAllowedSubjectTypes) != 0 ||
 					len(readerRel.RelationRefs) != 2 ||
 					readerRel.RelationRefs[0].ResourceType != "user" ||
@@ -97,9 +90,6 @@ func TestBuildSchema(t *testing.T) {
 				if viewPerm.Name != "view" ||
 					viewPerm.OutputName != "view" ||
 					viewPerm.Kind != "permission" ||
-					len(viewPerm.AllowedSubjectTypes) != 2 ||
-					viewPerm.AllowedSubjectTypes["user"] != "..." ||
-					viewPerm.AllowedSubjectTypes["document"] != "..." ||
 					len(viewPerm.OverrideAllowedSubjectTypes) != 0 ||
 					len(viewPerm.RelationRefs) != 1 ||
 					viewPerm.RelationRefs[0].ResourceType != "document" ||
@@ -125,8 +115,6 @@ func TestBuildSchema(t *testing.T) {
 				if readerRel.Name != "reader" ||
 					readerRel.OutputName != "reader" ||
 					readerRel.Kind != "relation" ||
-					len(readerRel.AllowedSubjectTypes) != 1 ||
-					readerRel.AllowedSubjectTypes["team"] != "member" ||
 					len(readerRel.RelationRefs) != 1 ||
 					readerRel.RelationRefs[0].ResourceType != "team" ||
 					readerRel.RelationRefs[0].Relation != "member" ||
@@ -137,8 +125,6 @@ func TestBuildSchema(t *testing.T) {
 				if viewPerm.Name != "view" ||
 					viewPerm.OutputName != "view" ||
 					viewPerm.Kind != "permission" ||
-					len(viewPerm.AllowedSubjectTypes) != 1 ||
-					viewPerm.AllowedSubjectTypes["user"] != "..." ||
 					len(viewPerm.OverrideAllowedSubjectTypes) != 0 ||
 					len(viewPerm.RelationRefs) != 1 ||
 					viewPerm.RelationRefs[0].ResourceType != "document" ||
@@ -163,8 +149,6 @@ func TestBuildSchema(t *testing.T) {
 				if viewPerm.Name != "view" ||
 					viewPerm.OutputName != "view" ||
 					viewPerm.Kind != "permission" ||
-					len(viewPerm.AllowedSubjectTypes) != 1 ||
-					viewPerm.AllowedSubjectTypes["user"] != "..." ||
 					len(viewPerm.OverrideAllowedSubjectTypes) != 0 ||
 					len(viewPerm.RelationRefs) != 1 ||
 					viewPerm.RelationRefs[0].ResourceType != "team" ||
