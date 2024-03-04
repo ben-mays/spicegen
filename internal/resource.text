@@ -5,12 +5,12 @@ package {{.PackageName}}
 {{ if .Resource.Permissions }} {{/* Only create permissions type/checker if there are permissions */}}
 type {{ $resource }}Permission string
 const (
-	{{ range $key, $perm := .Resource.Permissions }}{{ $perm.OutputName | ToCamel }}Permission {{ $resource }}Permission = "{{ $perm.Name }}"
+	{{ range $key, $perm := .Resource.PermissionsArray }}{{ $perm.OutputName | ToCamel }}Permission {{ $resource }}Permission = "{{ $perm.Name }}"
 	{{ end }}
 )
 
 var ALLOWED_PERMISSION_SUBJECT_TYPES = map[{{ $resource }}Permission]map[string]bool{
-	{{ range $key, $perm := .Resource.Permissions }}{{ $perm.OutputName | ToCamel }}Permission: {
+	{{ range $key, $perm := .Resource.PermissionsArray }}{{ $perm.OutputName | ToCamel }}Permission: {
 	  {{ range $subject, $optionalRelation := $perm.AllowedSubjectTypes }}"{{ $subject }}": true,{{end}}
 	},
 	{{ end }}
@@ -18,7 +18,7 @@ var ALLOWED_PERMISSION_SUBJECT_TYPES = map[{{ $resource }}Permission]map[string]
 {{end}}
 {{ if .Resource.Relations }} 
 var ALLOWED_RELATION_SUBJECT_TYPES = map[{{ $resource }}Relation]map[string]string{
-	{{ range $key, $rel := .Resource.Relations }}{{ $rel.OutputName | ToCamel }}Relation: { {{ range $subject, $optionalRelation := $rel.AllowedSubjectTypes }}
+	{{ range $rel := .Resource.RelationsArray }}{{ $rel.OutputName | ToCamel }}Relation: { {{ range $subject, $optionalRelation := $rel.AllowedSubjectTypes }}
 	  "{{ $subject }}": "{{ $optionalRelation }}",{{end}}
 	},
 	{{ end }}
@@ -26,7 +26,7 @@ var ALLOWED_RELATION_SUBJECT_TYPES = map[{{ $resource }}Relation]map[string]stri
 
 type {{ $resource }}Relation string
 const (
-	{{ range $key, $rel := .Resource.Relations }}{{ $rel.OutputName | ToCamel }}Relation {{ $resource }}Relation = "{{ $rel.Name }}"
+	{{ range $key, $rel := .Resource.RelationsArray }}{{ $rel.OutputName | ToCamel }}Relation {{ $resource }}Relation = "{{ $rel.Name }}"
 	{{ end }}
 )
 {{end}}

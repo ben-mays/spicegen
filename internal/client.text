@@ -161,7 +161,7 @@ func (c *{{$ClientName}}) Delete{{ $resource }}Relationship(ctx context.Context,
 } {{ end }}
 {{ end}}
 
-func (c *{{$ClientName}}) LookupResources(ctx context.Context, resourceType ResourceType, subject Resource, permission string, opts *LookupResourcesOptions) ([]Resource, string, error) {
+func (c *{{$ClientName}}) LookupResources(ctx context.Context, resourceType ResourceType, subject Resource, permission string, opts *LookupResourcesOptions) ([]string, string, error) {
 	c.RLock()
 	defer c.RUnlock()
 	subjectRef := &pb.SubjectReference{
@@ -194,14 +194,13 @@ func (c *{{$ClientName}}) LookupResources(ctx context.Context, resourceType Reso
 	if err != nil {
 		return nil, "", err
 	}
-	resources := make([]Resource, 0)
+	resources := make([]string, 0)
 	lastToken := ""
 	for {
 		resp, err := client.Recv()
 		if resp != nil && resp.ResourceObjectId != "" {
 			// suppress error because we _know_ this is a correct resource type given the generation
-			resource, _ := NewResource(resourceType, resp.ResourceObjectId)
-			resources = append(resources, resource)
+			resources = append(resources, resp.ResourceObjectId)
 			if resp.AfterResultCursor != nil {
 				lastToken = resp.AfterResultCursor.Token
 			}
@@ -220,12 +219,12 @@ func (c *{{$ClientName}}) LookupResources(ctx context.Context, resourceType Reso
 {{ range $rsc := .Resources }}{{ $resource := $rsc.Name | ToCamel }}
 {{ if $rsc.Permissions }} 
 {{ $subjectType := $rsc.PermissionSubjectType | ToCamel }}
-func (c *{{$ClientName}}) Lookup{{ $resource }}Resources(ctx context.Context, subject {{ $subjectType }}, permission {{ $rsc.Name }}.{{ $resource }}Permission, opts *LookupResourcesOptions)  ([]Resource, string, error) {
+func (c *{{$ClientName}}) Lookup{{ $resource }}Resources(ctx context.Context, subject {{ $subjectType }}, permission {{ $rsc.Name }}.{{ $resource }}Permission, opts *LookupResourcesOptions)  ([]string, string, error) {
 	return c.LookupResources(ctx, {{ $resource }}, subject, string(permission), opts)
 } {{ end }}
 {{ end}}
 
-func (c *{{$ClientName}}) LookupSubjects(ctx context.Context, resource Resource, subjectType ResourceType, permission string, opts *LookupSubjectsOptions) ([]Resource, string, error) {
+func (c *{{$ClientName}}) LookupSubjects(ctx context.Context, resource Resource, subjectType ResourceType, permission string, opts *LookupSubjectsOptions) ([]string, string, error) {
 	c.RLock()
 	defer c.RUnlock()
 	req := &pb.LookupSubjectsRequest{
@@ -245,13 +244,12 @@ func (c *{{$ClientName}}) LookupSubjects(ctx context.Context, resource Resource,
 	if err != nil {
 		return nil, "", err
 	}
-	subjects := make([]Resource, 0)
+	subjects := make([]string, 0)
 	lastToken := ""
 	for {
 		resp, err := client.Recv()
 		if resp != nil && resp.Subject != nil {
-			subject, _ := NewResource(subjectType, resp.Subject.SubjectObjectId)
-			subjects = append(subjects, subject)
+			subjects = append(subjects, resp.Subject.SubjectObjectId)
 			if resp.AfterResultCursor != nil {
 				lastToken = resp.AfterResultCursor.Token
 			}
@@ -270,7 +268,7 @@ func (c *{{$ClientName}}) LookupSubjects(ctx context.Context, resource Resource,
 {{ range $rsc := .Resources }}{{ $resource := $rsc.Name | ToCamel }}
 {{ if $rsc.Permissions }} 
 {{ $subjectType := $rsc.PermissionSubjectType | ToCamel }}
-func (c *{{$ClientName}}) Lookup{{ $resource }}Subjects(ctx context.Context, resourceID string, subjectType ResourceType, permission {{ $rsc.Name }}.{{ $resource }}Permission, opts *LookupSubjectsOptions)  ([]Resource, string, error) {
+func (c *{{$ClientName}}) Lookup{{ $resource }}Subjects(ctx context.Context, resourceID string, subjectType ResourceType, permission {{ $rsc.Name }}.{{ $resource }}Permission, opts *LookupSubjectsOptions)  ([]string, string, error) {
 	resource, _ := NewResource({{$resource}}, resourceID)
 	return c.LookupSubjects(ctx, resource, subjectType, string(permission), opts)
 } {{ end }}

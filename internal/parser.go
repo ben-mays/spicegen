@@ -38,9 +38,11 @@ type Relation struct {
 }
 
 type Resource struct {
-	Name        string
-	Permissions map[string]Relation
-	Relations   map[string]Relation
+	Name             string
+	Permissions      map[string]Relation
+	PermissionsArray []Relation
+	Relations        map[string]Relation
+	RelationsArray   []Relation
 
 	// Either a specific resource type or "Resource"
 	PermissionSubjectType string

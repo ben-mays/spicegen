@@ -60,8 +60,8 @@ type {{$InterfaceName}} interface {
 	{{ range $rsc := .Resources }}{{ $resource := $rsc.Name | ToCamel }} {{ if $rsc.Relations }} {{ $subjectType := $rsc.RelationSubjectType | ToCamel }}
 	Delete{{ $resource }}Relationship(ctx context.Context, resource {{ $resource }}Resource, relation {{ $rsc.Name }}.{{ $resource }}Relation, subject {{ $subjectType }}, opts *DeleteRelationshipOptions) error{{ end }}{{ end}}
 	{{ range $rsc := .Resources }}{{ $resource := $rsc.Name | ToCamel }}{{ if $rsc.Permissions }} {{ $subjectType := $rsc.PermissionSubjectType | ToCamel }}
-	Lookup{{ $resource }}Resources(ctx context.Context, subject {{ $subjectType }}, permission {{ $rsc.Name }}.{{ $resource }}Permission, opts *LookupResourcesOptions)  ([]Resource, string, error)
-	Lookup{{ $resource }}Subjects(ctx context.Context, resourceID string, subjectType ResourceType, permission {{ $rsc.Name }}.{{ $resource }}Permission, opts *LookupSubjectsOptions) ([]Resource, string, error) {{ end }}{{ end}}
+	Lookup{{ $resource }}Resources(ctx context.Context, subject {{ $subjectType }}, permission {{ $rsc.Name }}.{{ $resource }}Permission, opts *LookupResourcesOptions)  ([]string, string, error)
+	Lookup{{ $resource }}Subjects(ctx context.Context, resourceID string, subjectType ResourceType, permission {{ $rsc.Name }}.{{ $resource }}Permission, opts *LookupSubjectsOptions) ([]string, string, error) {{ end }}{{ end}}
 }
 
 type CheckPermissionOptions struct {
