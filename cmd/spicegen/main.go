@@ -12,7 +12,6 @@ import (
 
 	"github.com/authzed/spicedb/pkg/schemadsl/compiler"
 	"github.com/ben-mays/spicegen/internal"
-	"golang.org/x/exp/maps"
 )
 
 func main() {
@@ -174,10 +173,10 @@ func main() {
 	}
 
 	fmt.Printf("writing types to %s with packageName %s\n", path.Join(*outputPath, "types.go"), *outputPackageName)
-	internal.GenTypes(maps.Values(state.Resources), *outputPath, "types.go", *outputPackageName, *outputInterfaceName, *outputImportPath)
+	internal.GenTypes(resources, *outputPath, "types.go", *outputPackageName, *outputInterfaceName, *outputImportPath)
 	if !*skipClientGeneration {
 		fmt.Printf("writing client to %s with packageName %s\n", path.Join(*outputPath, outputFileName), *outputPackageName)
-		internal.GenClient(maps.Values(state.Resources), *outputPath, outputFileName, *outputPackageName, *outputClientName, *outputInterfaceName, *outputImportPath)
+		internal.GenClient(resources, *outputPath, outputFileName, *outputPackageName, *outputClientName, *outputInterfaceName, *outputImportPath)
 	}
 	for _, rsc := range resources {
 		internal.GenResource(rsc, permissionPath, rsc.Name)
